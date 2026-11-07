@@ -2,6 +2,7 @@ const http = require("http"), fs = require("fs"), path = require("path");
 const { WebSocketServer } = require("ws");
 const PORT = process.env.PORT || 3000;
 const rooms = new Map();
+const MAXP = 50;   // 서버 보호용 안전 상한
 const rnd = a => a[Math.floor(Math.random() * a.length)];
 const rid = () => Math.random().toString(36).slice(2, 8);
 const newCode = () => { let c; do { c = Array.from({ length: 4 }, () => rnd("ABCDEFGHJKLMNPQRSTUVWXYZ")).join(""); } while (rooms.has(c)); return c; };
@@ -26,14 +27,14 @@ const resetP = x => {
 };
 
 function view(r, p) {
-  const mid = r.phase === "result" && r.day % 3 === 0;
+  const mid = r.phase === "result" && r.every > 0 && r.day % r.every === 0;
   let board = null;
   if (mid || r.phase === "end") {
     const mx = Math.max(...r.players.map(x => x.score));
     board = r.players.map(x => ({ name: x.name, score: x.score, win: r.phase === "end" && x.score === mx })).sort((a, b) => b.score - a.score);
   }
   return {
-    t: "state", code: r.code, phase: r.phase, day: r.day, total: r.total, me: p.id,
+    t: "state", code: r.code, phase: r.phase, day: r.day, total: r.total, every: r.every, me: p.id,
     host: r.hostTok === p.tok,
     players: r.players.map(x => ({
       id: x.id, name: x.name, faction: r.phase === "draw" ? undefined : x.faction,
@@ -151,6 +152,22 @@ function advance(r) {
   } else if (r.phase === "result") { if (r.day >= r.total) r.phase = "end"; else deal(r); }
 }
 
+function afterKick(r) {
+  if (r.phase === "lobby") return;
+  if (r.players.length < 2) {
+    r.phase = "lobby"; r.day = 0; r.acts = {}; r.res = null; r.pub = []; r.sk = {};
+    r.players.forEach(resetP); return;
+  }
+  if (r.phase === "vote") {
+    const ids = new Set(r.players.map(x => x.id));
+    for (const k of ["sheep", "wolf"]) {
+      if (r.cand[k]) { r.cand[k] = r.cand[k].filter(id => ids.has(id)); if (r.need[k] && !r.cand[k].length) { r.need[k] = false; r.keep[k] = null; } }
+      if (r.need[k] && !r.players.some(x => !x.ex)) { r.need[k] = false; r.keep[k] = null; }
+    }
+    if (!r.need.sheep && !r.need.wolf) advance(r);
+  }
+}
+
 function botAct(r, x) {
   const others = r.players.filter(y => y.id !== x.id).map(y => y.id);
   if (r.phase === "draw") r.acts[x.id] = { ab: false };
@@ -180,16 +197,17 @@ wss.on("connection", ws => {
       const name = String(m.name || "").trim().slice(0, 12), tok = String(m.tok || "").slice(0, 40);
       if (!name || !tok) return err("이름을 입력해 주세요.");
       if (m.t === "create") {
-        r = { code: newCode(), hostTok: tok, phase: "lobby", day: 0, players: [], acts: {}, res: null, pub: [], sk: {}, at: Date.now() };
+        r = { code: newCode(), hostTok: tok, phase: "lobby", day: 0, players: [], acts: {}, res: null, pub: [], sk: {}, banned: new Set(), total: 10, every: 3, at: Date.now() };
         rooms.set(r.code, r);
       } else {
         r = rooms.get(String(m.code || "").trim().toUpperCase());
         if (!r) { r = null; return send(ws, { t: "gone" }); }
       }
+      if (r.banned.has(tok)) { r = null; return err("이 방에서 추방되어 다시 들어올 수 없어요."); }
       p = r.players.find(x => x.tok === tok);
       if (!p) {
         if (r.phase !== "lobby") { r = null; return err("이미 시작된 방이에요."); }
-        if (r.players.length >= 8) { r = null; return err("방이 가득 찼어요. (최대 8명)"); }
+        if (r.players.length >= MAXP) { r = null; return err("방이 가득 찼어요. (최대 " + MAXP + "명)"); }
         p = { tok, id: rid(), name, ws: null }; r.players.push(p);
       }
       if (p.ws && p.ws !== ws) { try { p.ws.close(); } catch { } }
@@ -201,16 +219,26 @@ wss.on("connection", ws => {
     const valid = id => id !== p.id && r.players.some(x => x.id === id);
     if (m.t === "start" && host && r.phase === "lobby") {
       if (r.players.length < 2) return err("2명 이상 필요해요.");
-      r.total = [3, 10, 15, 20].includes(+m.total) ? +m.total : 10;
+      const tn = Math.floor(+m.total), ev = Math.floor(+m.every);
+      r.total = Number.isFinite(tn) ? Math.max(1, Math.min(99, tn)) : 10;
+      r.every = Number.isFinite(ev) ? Math.max(0, Math.min(99, ev)) : 3;
       r.players.forEach(resetP);
       deal(r);
     } else if (m.t === "addbot" && host && r.phase === "lobby") {
-      if (r.players.length >= 8) return err("방이 가득 찼어요. (최대 8명)");
+      if (r.players.length >= MAXP) return err("방이 가득 찼어요. (최대 " + MAXP + "명)");
       const n = r.players.filter(x => x.bot).length + 1;
       r.players.push({ tok: "bot-" + rid(), id: rid(), name: "봇" + n, ws: null, bot: true });
     } else if (m.t === "rmbot" && host && r.phase === "lobby") {
       const b = r.players.filter(x => x.bot).pop();
       if (b) r.players = r.players.filter(x => x !== b);
+    } else if (m.t === "kick" && host) {
+      const t = r.players.find(x => x.id === m.id);
+      if (!t || t === p) return err("추방할 수 없는 대상이에요.");
+      r.banned.add(t.tok);
+      const w = t.ws; t.ws = null;
+      send(w, { t: "kicked" }); try { w && w.close(); } catch { }
+      r.players = r.players.filter(x => x !== t); delete r.acts[t.id];
+      afterKick(r);
     } else if (m.t === "draw" && r.phase === "draw") {
       const ok = m.ab && p.abil < 2 && !p.lock && ["동", "서"].includes(m.faction) && ["양", "늑대"].includes(m.role);
       r.acts[p.id] = ok ? { ab: true, faction: m.faction, role: m.role } : { ab: false };

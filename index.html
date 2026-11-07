@@ -25,13 +25,17 @@ button.g{background:none;color:var(--mut);border:1px solid var(--line)}
 button:disabled{opacity:.4}
 :focus-visible{outline:3px solid var(--w);outline-offset:2px}
 .n{color:var(--mut);font-size:.9rem;margin:.4rem 0 0}
+label.n{display:block}
+.top{display:flex;justify-content:flex-end;margin:-.6rem 0 .8rem}
+button.sm{width:auto;padding:.3rem .9rem;font-size:.9rem;margin:0}
+.rl p{margin:.3rem 0}
 #t{position:fixed;left:1rem;right:1rem;bottom:calc(1rem + env(safe-area-inset-bottom,0px));background:var(--ac);color:var(--acf);padding:.8rem 1rem;border-radius:8px;max-width:28rem;margin:0 auto}
 </style></head>
-<body><main><h1>동랑서미전</h1><p class="sub">東狼西羊戰</p><div id="app"><p class="n">연결 중…</p></div></main><div id="t" hidden role="status"></div>
+<body><main><h1>동랑서미전</h1><p class="sub">東狼西羊戰</p><div class="top"><button class="g sm" id="rb">설명서</button></div><div id="app"><p class="n">연결 중…</p></div></main><div id="t" hidden role="status"></div>
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let ws,V=null,sel={};
+let ws,V=null,sel={},rules=false,cfg={total:10,every:3};
 let tok=localStorage.getItem("drtok");
 if(!tok){tok=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("drtok",tok)}
 const saved=()=>{try{return JSON.parse(localStorage.getItem("dr")||"null")}catch(e){return null}};
@@ -49,15 +53,30 @@ function conn(){
       try{localStorage.setItem("dr",JSON.stringify({name:me?me.name:"",code:V.code}))}catch(x){}
       render();
     }else if(m.t==="err")tt(m.m);
+    else if(m.t==="kicked"){localStorage.removeItem("dr");V=null;sel={};tt("방장이 당신을 추방했어요.");render()}
     else if(m.t==="gone"){localStorage.removeItem("dr");V=null;tt("방을 찾을 수 없어요.");render()}
   };
   ws.onclose=()=>setTimeout(conn,2000);
 }
 setInterval(()=>{if(ws&&ws.readyState===1)ws.send('{"t":"ping"}')},25000);
 
+const RULES=`<div class="rl">
+<div class="card"><h2>게임 목표</h2><p>정해진 턴이 끝났을 때 가장 많은 점수를 얻은 사람이 우승해요. 동점이면 공동 우승이에요.</p></div>
+<div class="card"><h2>진영과 역할</h2><p>모두 동쪽이나 서쪽 진영 중 하나이고, 양이나 늑대 역할 중 하나예요. 진영과 역할은 매일 새로 랜덤으로 정해져요. 양이 될지 늑대가 될지 확률은 알 수 없고, 모두 양이거나 모두 늑대인 날도 있어요.</p><p>다른 사람의 역할과 점수는 알 수 없지만, 진영은 볼 수 있어요.</p></div>
+<div class="card"><h2>하루의 흐름</h2><p><b>1. 역할 뽑기</b> — 진영과 역할이 정해지기 전에 능력을 쓸지 정해요.</p><p><b>2. 밤 · 하울링</b> — 늑대만 하울링을 쓸지 정해요.</p><p><b>3. 밤 · 행동</b> — 양은 스킬을 고르고, 늑대는 공격할 사람을 골라요. 모두 동시에 정해요.</p><p><b>4. 아침 투표</b> — 양으로 의심되는 사람과 늑대로 의심되는 사람을 뽑아요.</p><p><b>5. 결과</b> — 투표 결과와 내 점수가 나오고, 방장이 다음 밤을 시작해요.</p></div>
+<div class="card"><h2>능력 (진영 및 역할 선택)</h2><p>게임 전체에서 최대 2번, 진영과 역할을 직접 고를 수 있어요. 쓰면 "능력을 사용했습니다"라는 사실이 모두에게 알려지지만, 무엇을 골랐는지는 비밀이에요. 역할이 고정된 날에는 쓸 수 없어요.</p></div>
+<div class="card"><h2>양</h2><p>밤에 아무 행동도 하지 않고 늑대에게 공격받지 않으면 <b>+3점</b>이에요. 공격받으면 이 점수를 받지 못해요.</p><p><b>양치기 부르기</b> — 공격받았다면 +2점을 받고, 몇 명이 나를 공격했는지 알 수 있어요. 공격한 늑대는 다음 턴에 늑대로 고정돼요(진영은 랜덤). 공격받지 않았다면 -2점이에요.</p><p><b>사냥꾼 부르기</b> — 공격받았다면 +1점이고, 공격한 늑대는 다음 턴 점수를 계산한 뒤 -2점을 받아요. 공격받지 않았다면 -4점이에요.</p><p><b>위장</b> — 한 게임에 1번, 그날 밤에만 나를 늑대로 판정하게 해요. 늑대의 행동과 스킬은 쓸 수 없고, 양의 스킬과 생존 +3점도 받지 못해요. 아침 투표에서는 그대로 양으로 취급돼요.</p></div>
+<div class="card"><h2>늑대</h2><p>밤마다 자기 자신을 뺀 다른 사람 한 명을 공격할 수 있어요.</p><p><b>양을 공격하면</b> — 같은 진영 양 +1점, 다른 진영 양 +3점이에요.</p><p><b>늑대를 공격하면</b> — 같은 진영 늑대 0점, 다른 진영 늑대 -3점이에요. 위장한 양은 늑대로 취급돼요.</p><p><b>공격을 포기하면</b> — -1점을 받고 굶주림 상태가 돼요.</p><p>여러 늑대가 같은 양을 공격하면 늑대마다 따로 점수를 받아요.</p></div>
+<div class="card"><h2>굶주림</h2><p>공격을 포기한 늑대가 걸리는 상태예요. 다음에 늑대가 되었을 때 양을 잡아서 얻는 점수가 2배(같은 진영 +2점, 다른 진영 +6점)가 돼요. 대신 늑대를 공격해서 잃는 점수도 커져요(같은 진영 -1점, 다른 진영 -6점). 중첩되지 않아요.</p></div>
+<div class="card"><h2>하울링</h2><p>하울링을 쓴 늑대끼리는 서로의 이름을 알 수 있어요. 한 게임에 최대 3번 쓸 수 있고, 밤 행동보다 먼저 정해요. 같이 쓰는 늑대가 아무도 없으면, 내가 늑대라는 사실이 모두에게 알려지고 -2점이에요.</p></div>
+<div class="card"><h2>아침 투표</h2><p>양으로 의심되는 사람과 늑대로 의심되는 사람을 한 명씩 뽑아요. 자기 자신도 뽑을 수 있어요. 각각 득표 1위가 정해지고, 동표면 동표인 사람들만 후보로 다시 투표해요(그래도 동표면 무작위).</p><p><b>맞았다면</b> — 뽑힌 사람은 다음 턴에 그 역할로 고정되고(진영은 랜덤), 다음 투표 후보에서 빠져요.</p><p><b>틀렸다면</b> — 뽑힌 사람을 뺀 모두가 -2점이에요.</p><p>양 투표와 늑대 투표는 따로 적용돼요. 누가 누구를 뽑았는지는 비밀이고, 득표수만 공개돼요.</p></div>
+<div class="card"><h2>점수 보기</h2><p>내 점수는 투표가 끝난 뒤 결과 화면에서, 밤에 일어난 일과 점수가 바뀐 이유와 함께 볼 수 있어요. 모두의 점수는 방장이 정한 주기마다 공개되고, 마지막에는 최종 순위가 나와요.</p></div>
+</div>`;
 function render(){
+  $("#rb").textContent=rules?"설명서 닫기":"설명서";
+  if(document.activeElement&&document.activeElement.tagName==="INPUT")return;
+  if(rules){$("#app").innerHTML=RULES+`<button data-a="rulesClose">닫기</button>`;return}
   if(!V){
-    if(document.activeElement&&document.activeElement.tagName==="INPUT")return;
     $("#app").innerHTML=`<div class="card"><input id="nm" maxlength="12" placeholder="내 이름" aria-label="이름"><button data-a="create">새 방 만들기</button></div>
 <div class="card"><input id="cd" maxlength="4" placeholder="방 코드 4글자" aria-label="방 코드"><button data-a="join">방에 들어가기</button></div>`;
     return;
@@ -80,14 +99,14 @@ function render(){
   const others=pl.filter(x=>x.id!==V.me);
   const opts=(k,t,l)=>`<select data-k="${k}" aria-label="${t}"><option value="">${t}</option>${(l||others).map(p=>`<option value="${p.id}"${sel[k]===p.id?" selected":""}>${esc(p.name)}</option>`).join("")}</select>`;
   if(ph==="lobby"){
-    h+=V.host?`<p class="n">친구들에게 방 코드를 알려 주세요. 원활한 진행에는 4명 이상을 권장해요.</p><select id="tot" aria-label="진행 턴 수"><option value="10">10턴 (기본)</option><option value="15">15턴</option><option value="20">20턴</option><option value="3">3턴 (시험용)</option></select><button class="g" data-a="addbot"${pl.length>=8?" disabled":""}>봇 추가</button>${pl.some(p=>p.bot)?`<button class="g" data-a="rmbot">봇 한 명 빼기</button>`:""}<button data-a="start"${pl.length<2?" disabled":""}>게임 시작</button>`:`<p class="n">방장이 시작하기를 기다리는 중이에요.</p>`;
+    h+=V.host?`<p class="n">친구들에게 방 코드를 알려 주세요. 원활한 진행에는 4명 이상을 권장해요.</p><label class="n" for="tot">진행 턴 수</label><input id="tot" type="number" inputmode="numeric" min="1" max="99" value="${esc(cfg.total)}"><label class="n" for="ev">모두의 점수를 공개하는 주기 (턴마다, 0이면 공개 안 함)</label><input id="ev" type="number" inputmode="numeric" min="0" max="99" value="${esc(cfg.every)}"><button class="g" data-a="addbot"${pl.length>=50?" disabled":""}>봇 추가</button>${pl.some(p=>p.bot)?`<button class="g" data-a="rmbot">봇 한 명 빼기</button>`:""}<button data-a="start"${pl.length<2?" disabled":""}>게임 시작</button>`:`<p class="n">방장이 시작하기를 기다리는 중이에요.</p>`;
   }else if(ph==="end"){
     h+=logCard()+`<p class="n">게임이 끝났어요. 가장 높은 점수를 얻은 사람이 우승이에요. 동점이면 공동 우승이에요.</p>`;
   }else if(ph==="result"){
     const r=V.res||{},tal=r.tal||{};
     const tl=k=>(tal[k]||[]).map((c,i,arr)=>`<p class="n">${arr.length>1?(i?"재투표":"1차 투표"):"득표"}: ${c.length?c.map(x=>esc(x.name)+" "+x.n+"표").join(" · "):"없음"}</p>`).join("");
     const kind=(t,k,x,role)=>`<div class="card"><h2>${t} 투표 결과</h2>${tl(k)}${x?`<p><b>1위: ${esc(x.name)}</b> — 정체가 ${x.ok?"맞았어요":"아니었어요"}.</p><p>${x.ok?`다음 턴에 ${role==="양"?"양으로":"늑대로"} 고정됩니다. (진영은 랜덤)`:"투표로 뽑힌 사람을 제외한 모두의 점수를 -2점 깎습니다."}</p>`:`<p>뽑힌 사람이 없어요. (기권 처리)</p>`}</div>`;
-    h+=kind("양","sheep",r.sheep,"양")+kind("늑대","wolf",r.wolf,"늑대")+logCard()+`<p class="n">다른 사람의 점수는 3턴마다 공개돼요.</p>`;
+    h+=kind("양","sheep",r.sheep,"양")+kind("늑대","wolf",r.wolf,"늑대")+logCard()+`<p class="n">${V.every>0?`다른 사람의 점수는 ${V.every}턴마다 공개돼요.`:"중간 점수는 공개되지 않아요. 마지막에 최종 순위가 나와요."}</p>`;
     h+=V.host?`<button data-a="next">다음 밤으로</button>`:`<p class="n">방장이 다음 밤을 시작하기를 기다리는 중이에요.</p>`;
   }else if(me.done){
     h+=`<div class="card">${ph==="howl"&&V.role!=="늑대"?"늑대들이 하울링을 정하는 중이에요.":"제출했어요. 다른 사람을 기다리는 중이에요."}</div>`;
@@ -112,13 +131,19 @@ function render(){
     h+=`<div class="card"><h2>${V.need.sheep&&V.need.wolf?"어젯밤을 떠올려 보세요":"동표예요. 후보 중에서 다시 투표해요"}</h2>${V.need.sheep?opts("s","양으로 의심되는 사람",lst("sheep")):""}${V.need.wolf?opts("w","늑대로 의심되는 사람",lst("wolf")):""}<button data-a="vote">투표하기</button></div>`;
   }
   if(V.host&&["draw","howl","night","vote"].includes(ph))h+=`<p class="n">제출 ${pl.filter(p=>p.done).length}/${pl.length}</p><button class="g" data-a="force">지금 넘기기</button>`;
+  if(V.host&&others.length)h+=`<div class="card"><h2>플레이어 추방</h2>${opts("x","추방할 사람 선택")}<button class="g" data-a="kick">추방하기</button></div>`;
   if(V.host&&ph!=="lobby")h+=`<button class="g" data-a="reset">새 게임 (대기실로)</button>`;
   h+=`<button class="g" data-a="leave">방 나가기</button>`;
   $("#app").innerHTML=h;
 }
 $("#app").addEventListener("change",e=>{if(e.target.dataset.k)sel[e.target.dataset.k]=e.target.value});
+$("#app").addEventListener("input",e=>{const i=e.target;if(i.id==="tot")cfg.total=i.value;if(i.id==="ev")cfg.every=i.value});
+$("#app").addEventListener("focusout",()=>setTimeout(render,0));
+$("#rb").addEventListener("click",()=>{if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();rules=!rules;render();window.scrollTo(0,0)});
 $("#app").addEventListener("click",e=>{
   const a=e.target.dataset.a;if(!a)return;
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  if(a==="rulesClose"){rules=false;render();window.scrollTo(0,0);return}
   if(a==="create"||a==="join"){
     const n=$("#nm")&&$("#nm").value.trim();
     if(!n)return tt("이름을 입력해 주세요.");
@@ -135,7 +160,13 @@ $("#app").addEventListener("click",e=>{
     tx({t:"vote",sheep:sel.s||"",wolf:sel.w||""});sel={};
   }else if(a==="leave"){localStorage.removeItem("dr");V=null;sel={};ws.close()}
   else if(a==="ability"){if(!sel.f||!sel.r)return tt("진영과 역할을 모두 골라 주세요.");tx({t:"draw",ab:true,faction:sel.f,role:sel.r});sel={}}
-  else if(a==="start")tx({t:"start",total:+$("#tot").value});
+  else if(a==="kick"){
+    if(!sel.x)return tt("추방할 사람을 골라 주세요.");
+    const t=V.players.find(p=>p.id===sel.x);
+    if(!confirm((t?t.name:"이 사람")+"님을 추방할까요?"))return;
+    tx({t:"kick",id:sel.x});sel.x="";
+  }
+  else if(a==="start"){const tn=parseInt(cfg.total),ev=parseInt(cfg.every);tx({t:"start",total:isNaN(tn)?10:tn,every:isNaN(ev)?3:ev})}
   else tx({t:a});
 });
 conn();
