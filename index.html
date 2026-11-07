@@ -40,7 +40,7 @@ button.sm{width:auto;padding:.3rem .9rem;font-size:.9rem;margin:0}
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let ws,V=null,sel={},rules=false,cfg={total:10,every:3};
+let ws,V=null,sel={},rules=false,cfg={total:10,every:3},hv={nm:"",cd:""},pressed=false,dirty=false,pt=null;
 let tok=localStorage.getItem("drtok");
 if(!tok){tok=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("drtok",tok)}
 const saved=()=>{try{return JSON.parse(localStorage.getItem("dr")||"null")}catch(e){return null}};
@@ -79,11 +79,12 @@ const RULES=`<div class="rl">
 </div>`;
 function render(){
   $("#rb").textContent=rules?"설명서 닫기":"설명서";
-  if(document.activeElement&&document.activeElement.tagName==="INPUT")return;
+  if(pressed||(document.activeElement&&document.activeElement.tagName==="INPUT")){dirty=true;return}
+  dirty=false;
   if(rules){$("#app").innerHTML=RULES+`<button data-a="rulesClose">닫기</button>`;return}
   if(!V){
-    $("#app").innerHTML=`<div class="card"><input id="nm" maxlength="12" placeholder="내 이름" aria-label="이름"><button data-a="create">새 방 만들기</button></div>
-<div class="card"><input id="cd" maxlength="4" placeholder="방 코드 4글자" aria-label="방 코드"><button data-a="join">방에 들어가기</button></div>`;
+    $("#app").innerHTML=`<div class="card"><input id="nm" maxlength="12" placeholder="내 이름" aria-label="이름" value="${esc(hv.nm)}"><button data-a="create">새 방 만들기</button></div>
+<div class="card"><input id="cd" maxlength="4" placeholder="방 코드 4글자" aria-label="방 코드" value="${esc(hv.cd)}"><button data-a="join">방에 들어가기</button></div>`;
     return;
   }
   const ph=V.phase,pl=V.players,me=pl.find(x=>x.id===V.me)||{};
@@ -149,8 +150,11 @@ function render(){
   $("#app").innerHTML=h;
 }
 $("#app").addEventListener("change",e=>{if(e.target.dataset.k)sel[e.target.dataset.k]=e.target.value});
-$("#app").addEventListener("input",e=>{const i=e.target;if(i.id==="tot")cfg.total=i.value;if(i.id==="ev")cfg.every=i.value});
-$("#app").addEventListener("focusout",()=>setTimeout(render,0));
+$("#app").addEventListener("input",e=>{const i=e.target;if(i.id==="tot")cfg.total=i.value;if(i.id==="ev")cfg.every=i.value;if(i.id==="nm")hv.nm=i.value;if(i.id==="cd")hv.cd=i.value});
+$("#app").addEventListener("focusout",()=>setTimeout(()=>{if(dirty)render()},400));
+document.addEventListener("pointerdown",()=>{pressed=true;clearTimeout(pt);pt=setTimeout(()=>{pressed=false;if(dirty)render()},2500)},true);
+const rel=()=>setTimeout(()=>{pressed=false;clearTimeout(pt);if(dirty)render()},80);
+document.addEventListener("pointerup",rel,true);document.addEventListener("pointercancel",rel,true);
 $("#rb").addEventListener("click",()=>{if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();rules=!rules;render();window.scrollTo(0,0)});
 $("#app").addEventListener("click",e=>{
   const a=e.target.dataset.a;if(!a)return;
