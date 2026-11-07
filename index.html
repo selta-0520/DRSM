@@ -174,7 +174,7 @@ function render(){
   const cls=p=>p.faction==="동"?"e":p.faction==="서"?"w":"";
   const chip=p=>`<li class="${cls(p)}${p.on?"":" off"}">${esc(p.name)}${p.hw?" <small>하울링</small>":""}${p.bot?" (봇)":""}${p.id===V.me?" (나)":""}</li>`;
   const others=pl.filter(x=>x.id!==V.me);
-  const pers=(k,list,cur)=>`<div class="grid">${list.map(p=>pk(k,p.id,esc(p.name)+(p.id===V.me?" (나)":""),cls(p),p.faction?p.faction+"쪽":"",cur===p.id)).join("")}</div>`;
+  const pers=(k,list,cur)=>`<div class="grid">${list.map(p=>pk(k,p.id,esc(p.name)+(p.id===V.me?" (나)":"")+(p.hw?" (하울링)":""),cls(p),p.faction?p.faction+"쪽":"",cur===p.id)).join("")}</div>`;
   const P=PH[ph];
   let h="";
   const prog=LIVE.includes(ph)?` · 확인/제출 ${pl.filter(p=>p.done).length}/${pl.length}`:"";
