@@ -43,7 +43,7 @@ function view(r, p) {
       done: LIVE.includes(r.phase) && (!pend(r).includes(x) || !!r.acts[x.id])
     })),
     role: (r.phase === "lobby" || r.phase === "end" || r.phase === "draw") ? null : p.role,
-    need: r.phase === "vote" ? r.need : null, cand: r.phase === "vote" ? r.cand : null,
+    vote: r.phase === "vote" ? { stage: r.stage, round: r.round, cand: r.cand || null, pick: r.pick ? { id: r.pick, name: (by(r, r.pick) || {}).name || "?" } : null } : null,
     res: r.phase === "result" ? r.res : null, board,
     log: p.slog || null, logDay: p.slogDay || 0,
     pub: r.pub || [],
@@ -97,9 +97,27 @@ function resolveNight(r) {
   penal.forEach(x => add(x, -2, "지난 턴에 사냥꾼을 부른 양을 공격해서, 이번 턴 점수 계산 뒤에 -2점이에요.", "n"));
 }
 function toVote(r) {
-  r.phase = "vote"; r.acts = {}; r.round = 1; r.keep = {};
-  const ok = r.players.some(x => !x.ex);   // 후보가 없으면 자동 기권
-  r.need = { sheep: ok, wolf: ok }; r.cand = { sheep: null, wolf: null }; r.tal = { sheep: [], wolf: [] };
+  r.phase = "vote"; r.acts = {}; r.stage = "who"; r.round = 1; r.cand = null; r.pick = null;
+  r.tal = { who: [], kind: [] };
+}
+function finishVote(r, pick, verdict) {
+  r.players.forEach(x => { x.ex = false; });
+  let out = null;
+  const x = pick ? by(r, pick) : null;
+  if (x && verdict) {
+    const role = verdict === "sheep" ? "양" : "늑대";
+    const ok = x.role === role;           // 투표는 위장과 상관없이 실제 역할 기준
+    const lb = role + "으로 지목";
+    if (ok) { x.fix = role; x.ex = true; info(x, "투표로 뽑혀 " + role + "으로 지목받았어요. 정체가 맞아서 다음 턴에 " + role + (role === "양" ? "으로" : "로") + " 고정되고 다음 투표 후보에서 제외돼요.", "v"); }
+    else {
+      info(x, "투표로 뽑혀 " + role + "으로 지목받았어요. 정체가 아니라서 다른 모두가 -2점을 받아요.", "v");
+      r.players.forEach(y => { if (y !== x) add(y, -2, "투표로 뽑힌 " + x.name + "님의 정체가 " + role + (role === "양" ? "이" : "가") + " 아니었어요.", "v"); });
+    }
+    out = { id: x.id, name: x.name, verdict, ok };
+  }
+  r.res = { pick: out, tal: r.tal };
+  r.players.forEach(y => { y.shown = y.score; y.slog = (y.log || []).slice(); y.slogDay = r.day; });
+  r.phase = "result"; r.acts = {};
 }
 function afterNight(r) { resolveNight(r); r.phase = "dawn"; r.acts = {}; }
 function advance(r) {
@@ -117,43 +135,28 @@ function advance(r) {
     r.acts = {}; r.phase = "night";
   } else if (r.phase === "dawn") {
     toVote(r);
-    if (!r.need.sheep && !r.need.wolf) advance(r);
+    if (!r.players.some(x => !x.ex)) finishVote(r, null, null);   // 후보가 없으면 자동 기권
   } else if (r.phase === "night") {
     r.sk = {};
     r.players.forEach(x => { const a = r.acts[x.id] || {}; if (x.role === "양" && a.skill) r.sk[x.id] = a.skill; });
     afterNight(r);
   }
   else if (r.phase === "vote") {
-    const g = k => r.players.map(x => r.acts[x.id]).filter(a => a && a.guess === k && a.target).map(a => a.target);
-    const top = a => { const c = {}; a.forEach(x => c[x] = (c[x] || 0) + 1); const m = Math.max(0, ...Object.values(c)); return Object.keys(c).filter(k => m > 0 && c[k] === m); };
-    const cnt = k => { const c = {}; g(k).forEach(id => { c[id] = (c[id] || 0) + 1; }); return Object.entries(c).map(([id, n]) => ({ name: (by(r, id) || {}).name || "?", n })).sort((a, b) => b.n - a.n); };
-    const win = {}, tied = {};
-    for (const k of ["sheep", "wolf"]) {
-      if (!r.need[k]) { win[k] = r.keep[k]; continue; }
-      r.tal[k].push(cnt(k));
-      const t = top(g(k));
-      if (t.length > 1 && r.round === 1) tied[k] = t; else win[k] = t.length ? rnd(t) : null;
-    }
-    if (Object.keys(tied).length) {
-      r.round = 2; r.acts = {};
-      for (const k of ["sheep", "wolf"]) { if (tied[k]) r.cand[k] = tied[k]; else { r.keep[k] = win[k]; r.need[k] = false; } }
+    const acts = r.players.map(x => r.acts[x.id]).filter(Boolean);
+    if (r.stage === "who") {
+      const c = {}; acts.forEach(a => { if (a.target) c[a.target] = (c[a.target] || 0) + 1; });
+      r.tal.who.push(Object.entries(c).map(([id, n]) => ({ name: (by(r, id) || {}).name || "?", n })).sort((a, b) => b.n - a.n));
+      const m = Math.max(0, ...Object.values(c));
+      const t = Object.keys(c).filter(id => m > 0 && c[id] === m);
+      if (t.length > 1 && r.round === 1) { r.round = 2; r.cand = t; r.acts = {}; return; }
+      if (!t.length) { finishVote(r, null, null); return; }
+      r.pick = rnd(t); r.stage = "kind"; r.round = 1; r.cand = null; r.acts = {};
       return;
     }
-    r.players.forEach(x => { x.ex = false; });
-    const apply = (id, role) => {
-      const x = by(r, id); if (!x) return null;
-      const ok = x.role === role;           // 투표는 위장과 상관없이 실제 역할 기준
-      const lb = role + " 투표";
-      if (ok) { x.fix = role; x.ex = true; info(x, lb + " 1위로 뽑혔어요. 정체가 맞아서 다음 턴에 " + (role === "양" ? "양으로" : "늑대로") + " 고정되고 다음 투표 후보에서 제외돼요.", "v"); }
-      else {
-        info(x, lb + " 1위로 뽑혔어요. 정체가 아니라서 다른 모두가 -2점을 받아요.", "v");
-        r.players.forEach(y => { if (y !== x) add(y, -2, lb + " 1위(" + x.name + "님)의 정체가 " + role + (role === "양" ? "이" : "가") + " 아니었어요.", "v"); });
-      }
-      return { id, name: x.name, ok };
-    };
-    r.res = { sheep: apply(win.sheep, "양"), wolf: apply(win.wolf, "늑대"), tal: r.tal };
-    r.players.forEach(x => { x.shown = x.score; x.slog = (x.log || []).slice(); x.slogDay = r.day; });
-    r.phase = "result"; r.acts = {};
+    const sh = acts.filter(a => a.guess === "sheep").length, wf = acts.filter(a => a.guess === "wolf").length;
+    r.tal.kind.push({ sheep: sh, wolf: wf });
+    if (sh === wf && r.round === 1) { r.round = 2; r.acts = {}; return; }
+    finishVote(r, r.pick, sh === wf ? rnd(["sheep", "wolf"]) : (sh > wf ? "sheep" : "wolf"));
   } else if (r.phase === "result") { if (r.day >= r.total) r.phase = "end"; else deal(r); }
 }
 
@@ -165,11 +168,10 @@ function afterKick(r) {
   }
   if (r.phase === "vote") {
     const ids = new Set(r.players.map(x => x.id));
-    for (const k of ["sheep", "wolf"]) {
-      if (r.cand[k]) { r.cand[k] = r.cand[k].filter(id => ids.has(id)); if (r.need[k] && !r.cand[k].length) { r.need[k] = false; r.keep[k] = null; } }
-      if (r.need[k] && !r.players.some(x => !x.ex)) { r.need[k] = false; r.keep[k] = null; }
-    }
-    if (!r.need.sheep && !r.need.wolf) advance(r);
+    if (r.stage === "who") {
+      if (r.cand) { r.cand = r.cand.filter(id => ids.has(id)); if (!r.cand.length) r.cand = null; }
+      if (!r.players.some(x => !x.ex)) finishVote(r, null, null);
+    } else if (!r.pick || !ids.has(r.pick)) finishVote(r, null, null);
   }
 }
 
@@ -182,9 +184,10 @@ function botAct(r, x) {
     ? { target: Math.random() < .15 ? "" : (rnd(others) || "") }
     : { skill: rnd(["", "", "shepherd", "hunter", x.dis < 1 ? "disguise" : ""]) };
   else if (r.phase === "vote") {
-    const k = rnd(["sheep", "wolf"].filter(q => r.need[q]));
-    const f = r.players.filter(y => !y.ex && (!r.cand[k] || r.cand[k].includes(y.id))).map(y => y.id);
-    r.acts[x.id] = k ? { guess: k, target: rnd(f) || "" } : { guess: "", target: "" };
+    if (r.stage === "who") {
+      const f = r.players.filter(y => !y.ex && (!r.cand || r.cand.includes(y.id))).map(y => y.id);
+      r.acts[x.id] = { target: rnd(f) || "" };
+    } else r.acts[x.id] = { guess: rnd(["sheep", "wolf"]) };
   }
 }
 function settle(r) {
@@ -258,10 +261,14 @@ wss.on("connection", ws => {
         ? { target: valid(m.target) ? m.target : "" }
         : { skill: (m.skill === "shepherd" || m.skill === "hunter" || (m.skill === "disguise" && p.dis < 1)) ? m.skill : "" };
     } else if (m.t === "vote" && r.phase === "vote") {
-      const k = (m.guess === "sheep" || m.guess === "wolf") ? m.guess : null;
-      const ok = k && r.need[k] && r.players.some(x => x.id === m.target && !x.ex) && (!r.cand[k] || r.cand[k].includes(m.target));
-      if (!ok) return err("투표 대상이 올바르지 않아요.");
-      r.acts[p.id] = { guess: k, target: m.target };
+      if (r.stage === "who") {
+        const ok = r.players.some(x => x.id === m.target && !x.ex) && (!r.cand || r.cand.includes(m.target));
+        if (!ok) return err("투표 대상이 올바르지 않아요.");
+        r.acts[p.id] = { target: m.target };
+      } else {
+        if (m.guess !== "sheep" && m.guess !== "wolf") return err("양인지 늑대인지 골라 주세요.");
+        r.acts[p.id] = { guess: m.guess };
+      }
     } else if (host && m.t === "force" && LIVE.includes(r.phase)) advance(r);
     else if (host && m.t === "next" && r.phase === "result") advance(r);
     else if (host && m.t === "reset") {
