@@ -64,9 +64,11 @@ function render(){
   }
   const ph=V.phase,pl=V.players,me=pl.find(x=>x.id===V.me)||{};
   const cls=p=>p.faction==="동"?"e":p.faction==="서"?"w":"";
-  let h=`<div class="card"><p class="n">방 코드</p><div class="code">${esc(V.code)}</div><h2>${ph==="lobby"?"대기실 · "+pl.length+"명":V.day+"/"+V.total+"일차 · "+{night:"밤",vote:"아침 투표",result:"투표 결과",end:"게임 종료"}[ph]}</h2><ul>${pl.map(p=>`<li class="${cls(p)}${p.on?"":" off"}">${esc(p.name)}${p.faction?` <small>${p.faction}쪽</small>`:""}${p.id===V.me?" (나)":""}</li>`).join("")}</ul></div>`;
+  let h=`<div class="card"><p class="n">방 코드</p><div class="code">${esc(V.code)}</div><h2>${ph==="lobby"?"대기실 · "+pl.length+"명":V.day+"/"+V.total+"일차 · "+{draw:"역할 뽑기",night:"밤",vote:"아침 투표",result:"투표 결과",end:"게임 종료"}[ph]}</h2><ul>${pl.map(p=>`<li class="${cls(p)}${p.on?"":" off"}">${esc(p.name)}${p.faction?` <small>${p.faction}쪽</small>`:""}${p.id===V.me?" (나)":""}</li>`).join("")}</ul></div>`;
   if(V.role)h+=`<div class="card"><p class="n">오늘의 나</p><div class="role ${cls(me)}">${me.faction}쪽 ${V.role}</div></div>`;
   if(V.board)h+=`<div class="card"><h2>${ph==="end"?"최종 순위":"중간 점수"}</h2>${V.board.map((b,i)=>`<p>${i+1}. ${esc(b.name)} — ${b.score}점</p>`).join("")}</div>`;
+  if(V.pub&&V.pub.length&&ph!=="draw")h+=`<div class="card"><h2>공개 소식</h2>${V.pub.map(x=>`<p>${esc(x)}</p>`).join("")}</div>`;
+  if(V.note&&(ph==="vote"||ph==="result"))h+=`<div class="card"><h2>나에게만 온 소식</h2><p>${esc(V.note)}</p></div>`;
   const others=pl.filter(x=>x.id!==V.me);
   const opts=(k,t,l)=>`<select data-k="${k}" aria-label="${t}"><option value="">${t}</option>${(l||others).map(p=>`<option value="${p.id}"${sel[k]===p.id?" selected":""}>${esc(p.name)}</option>`).join("")}</select>`;
   if(ph==="lobby"){
@@ -80,10 +82,17 @@ function render(){
     h+=V.host?`<button data-a="next">다음 밤으로</button>`:`<p class="n">방장이 다음 밤을 시작하기를 기다리는 중이에요.</p>`;
   }else if(me.done){
     h+=`<div class="card">제출했어요. 다른 사람을 기다리는 중이에요.</div>`;
+  }else if(ph==="draw"){
+    const my=V.my||{};
+    h+=`<div class="card"><h2>이대로 하루를 시작할까요?</h2><button data-a="draw">확인</button></div>`;
+    if(my.abil<2&&!my.lock)h+=`<div class="card"><h2>능력 사용 (남은 ${2-my.abil}회)</h2><p class="n">진영과 역할을 직접 고르면, 사용했다는 사실이 모두에게 알려져요.</p><select data-k="f" aria-label="진영"><option value="">진영 선택</option><option value="동"${sel.f==="동"?" selected":""}>동쪽</option><option value="서"${sel.f==="서"?" selected":""}>서쪽</option></select><select data-k="r" aria-label="역할"><option value="">역할 선택</option><option value="양"${sel.r==="양"?" selected":""}>양</option><option value="늑대"${sel.r==="늑대"?" selected":""}>늑대</option></select><button class="g" data-a="ability">능력 사용하기</button></div>`;
+    else if(my.lock)h+=`<p class="n">역할이 고정된 날이라 능력을 쓸 수 없어요.</p>`;
   }else if(ph==="night"){
+    const my=V.my||{};
+    const so=(v,t)=>`<option value="${v}"${sel.k===v?" selected":""}>${t}</option>`;
     h+=V.role==="늑대"
-      ?`<div class="card"><h2>누구를 공격할까요?</h2>${opts("t","공격 포기")}<button data-a="act">밤 보내기</button></div>`
-      :`<div class="card"><h2>양은 밤에 할 일이 없어요</h2><button data-a="act">잠들기</button></div>`;
+      ?`<div class="card"><h2>누구를 공격할까요?</h2>${opts("t","공격 포기")}<select data-k="h" aria-label="하울링"><option value="">하울링 안 함</option>${my.howl<3?`<option value="1"${sel.h==="1"?" selected":""}>하울링 하기 (남은 ${3-my.howl}회)</option>`:""}</select><button data-a="act">밤 보내기</button></div>`
+      :`<div class="card"><h2>밤에 무엇을 할까요?</h2><select data-k="k" aria-label="스킬">${so("","아무것도 안 함")}${so("shepherd","양치기 부르기")}${so("hunter","사냥꾼 부르기")}${my.dis<1?so("disguise","늑대로 위장 (1회)"):""}</select><button data-a="act">밤 보내기</button></div>`;
   }else if(ph==="vote"){
     const lst=k=>others.filter(p=>!p.ex&&(!V.cand[k]||V.cand[k].includes(p.id)));
     h+=`<div class="card"><h2>${V.need.sheep&&V.need.wolf?"어젯밤을 떠올려 보세요":"동표예요. 후보 중에서 다시 투표해요"}</h2>${V.need.sheep?opts("s","양으로 의심되는 사람",lst("sheep")):""}${V.need.wolf?opts("w","늑대로 의심되는 사람",lst("wolf")):""}<button data-a="vote">투표하기</button></div>`;
@@ -105,11 +114,12 @@ $("#app").addEventListener("click",e=>{
       if(!c)return tt("방 코드를 입력해 주세요.");
       tx({t:"join",tok,name:n,code:c});
     }
-  }else if(a==="act"){tx({t:"act",target:sel.t||""});sel={}}
+  }else if(a==="act"){tx({t:"act",target:sel.t||"",skill:sel.k||"",howl:sel.h==="1"});sel={}}
   else if(a==="vote"){
     if((V.need.sheep&&!sel.s)||(V.need.wolf&&!sel.w))return tt("의심되는 사람을 골라 주세요.");
     tx({t:"vote",sheep:sel.s||"",wolf:sel.w||""});sel={};
   }else if(a==="leave"){localStorage.removeItem("dr");V=null;sel={};ws.close()}
+  else if(a==="ability"){if(!sel.f||!sel.r)return tt("진영과 역할을 모두 골라 주세요.");tx({t:"draw",ab:true,faction:sel.f,role:sel.r});sel={}}
   else if(a==="start")tx({t:"start",total:+$("#tot").value});
   else tx({t:a});
 });
