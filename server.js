@@ -20,14 +20,18 @@ const server = http.createServer((req, res) => {
 });
 const wss = new WebSocketServer({ server });
 
+const by = (r, id) => r.players.find(x => x.id === id);
 function view(r, p) {
   const live = r.phase === "night" || r.phase === "vote";
+  const board = (r.phase === "result" && r.day % 3 === 0) || r.phase === "end"
+    ? r.players.map(x => ({ name: x.name, score: x.score })).sort((a, b) => b.score - a.score) : null;
   return {
-    t: "state", code: r.code, phase: r.phase, day: r.day, me: p.id,
+    t: "state", code: r.code, phase: r.phase, day: r.day, total: r.total, me: p.id,
     host: r.hostTok === p.tok,
-    players: r.players.map(x => ({ id: x.id, name: x.name, faction: x.faction, on: !!x.ws, done: live && !!r.acts[x.id] })),
-    role: r.phase === "lobby" ? null : p.role,
-    res: r.phase === "result" ? r.res : null
+    players: r.players.map(x => ({ id: x.id, name: x.name, faction: x.faction, on: !!x.ws, ex: !!x.ex, done: live && !!r.acts[x.id] })),
+    role: (r.phase === "lobby" || r.phase === "end") ? null : p.role,
+    need: r.phase === "vote" ? r.need : null, cand: r.phase === "vote" ? r.cand : null,
+    res: r.phase === "result" ? r.res : null, board
   };
 }
 function push(r) { r.at = Date.now(); r.players.forEach(p => send(p.ws, view(r, p))); }
@@ -35,16 +39,54 @@ function push(r) { r.at = Date.now(); r.players.forEach(p => send(p.ws, view(r, 
 function night(r) {
   const p = Math.random();
   r.day++; r.phase = "night"; r.acts = {}; r.res = null;
-  r.players.forEach(x => { x.faction = rnd(["동", "서"]); x.role = Math.random() < p ? "늑대" : "양"; });
+  r.players.forEach(x => {
+    x.faction = rnd(["동", "서"]);
+    x.role = x.fix || (Math.random() < p ? "늑대" : "양");
+    x.fix = undefined;
+  });
+}
+function resolveNight(r) {
+  const caught = new Set();
+  r.players.filter(w => w.role === "늑대").forEach(w => {
+    const a = r.acts[w.id], t = a && a.target ? by(r, a.target) : null;
+    const h = w.hungry; w.hungry = false;
+    if (!t) { w.score -= 1; w.hungry = true; return; }
+    const same = t.faction === w.faction;
+    if (t.role === "양") { caught.add(t.id); w.score += (same ? 1 : 3) * (h ? 2 : 1); }
+    else w.score += same ? (h ? -1 : 0) : (h ? -6 : -3);
+  });
+  r.players.filter(x => x.role === "양" && !caught.has(x.id)).forEach(x => { x.score += 3; });
+}
+function toVote(r) {
+  r.phase = "vote"; r.acts = {}; r.round = 1;
+  r.need = { sheep: true, wolf: true }; r.cand = { sheep: null, wolf: null }; r.keep = {};
 }
 function advance(r) {
-  if (r.phase === "night") { r.phase = "vote"; r.acts = {}; }
+  if (r.phase === "night") { resolveNight(r); toVote(r); }
   else if (r.phase === "vote") {
     const g = k => r.players.map(x => r.acts[x.id] && r.acts[x.id][k]).filter(Boolean);
-    const f = (id, role) => { const x = r.players.find(y => y.id === id); return x ? { id, name: x.name, ok: x.role === role } : null; };
-    r.res = { sheep: f(pick(g("sheep")), "양"), wolf: f(pick(g("wolf")), "늑대") };
+    const top = a => { const c = {}; a.forEach(x => c[x] = (c[x] || 0) + 1); const m = Math.max(0, ...Object.values(c)); return Object.keys(c).filter(k => m > 0 && c[k] === m); };
+    const win = {}, tied = {};
+    for (const k of ["sheep", "wolf"]) {
+      if (!r.need[k]) { win[k] = r.keep[k]; continue; }
+      const t = top(g(k));
+      if (t.length > 1 && r.round === 1) tied[k] = t; else win[k] = t.length ? rnd(t) : null;
+    }
+    if (Object.keys(tied).length) {
+      r.round = 2; r.acts = {};
+      for (const k of ["sheep", "wolf"]) { if (tied[k]) r.cand[k] = tied[k]; else { r.keep[k] = win[k]; r.need[k] = false; } }
+      return;
+    }
+    r.players.forEach(x => { x.ex = false; });
+    const apply = (id, role) => {
+      const x = by(r, id); if (!x) return null;
+      const ok = x.role === role;
+      if (ok) { x.fix = role; x.ex = true; } else r.players.forEach(y => { if (y !== x) y.score -= 2; });
+      return { id, name: x.name, ok };
+    };
+    r.res = { sheep: apply(win.sheep, "양"), wolf: apply(win.wolf, "늑대") };
     r.phase = "result"; r.acts = {};
-  } else if (r.phase === "result") night(r);
+  } else if (r.phase === "result") { if (r.day >= r.total) r.phase = "end"; else night(r); }
 }
 
 wss.on("connection", ws => {
@@ -78,17 +120,20 @@ wss.on("connection", ws => {
     const valid = id => id !== p.id && r.players.some(x => x.id === id);
     if (m.t === "start" && host && r.phase === "lobby") {
       if (r.players.length < 2) return err("2명 이상 필요해요.");
+      r.total = [3, 10, 15, 20].includes(+m.total) ? +m.total : 10;
+      r.players.forEach(x => { x.score = 0; x.hungry = false; x.fix = undefined; x.ex = false; });
       night(r);
     } else if (m.t === "act" && r.phase === "night") {
       r.acts[p.id] = { target: valid(m.target) ? m.target : "" };
     } else if (m.t === "vote" && r.phase === "vote") {
-      if (!valid(m.sheep) || !valid(m.wolf)) return err("투표 대상이 올바르지 않아요.");
+      const okv = (k, id) => !r.need[k] || (id !== p.id && r.players.some(x => x.id === id && !x.ex) && (!r.cand[k] || r.cand[k].includes(id)));
+      if (!okv("sheep", m.sheep) || !okv("wolf", m.wolf)) return err("투표 대상이 올바르지 않아요.");
       r.acts[p.id] = { sheep: m.sheep, wolf: m.wolf };
     } else if (host && m.t === "force" && (r.phase === "night" || r.phase === "vote")) advance(r);
     else if (host && m.t === "next" && r.phase === "result") advance(r);
     else if (host && m.t === "reset") {
       r.phase = "lobby"; r.day = 0; r.acts = {}; r.res = null;
-      r.players.forEach(x => { x.faction = undefined; x.role = undefined; });
+      r.players.forEach(x => { x.faction = x.role = x.fix = undefined; x.score = 0; x.hungry = false; x.ex = false; });
     }
     if ((r.phase === "night" || r.phase === "vote") && r.players.every(x => r.acts[x.id])) advance(r);
     push(r);
