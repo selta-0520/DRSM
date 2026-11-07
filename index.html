@@ -78,7 +78,7 @@ button.ch.on small{color:var(--acf);opacity:.8}
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let ws,V=null,sel={},rules=false,cfg={total:10,every:3},hv={nm:"",cd:""},pressed=false,dirty=false,pt=null,side=false,menu=false,abOpen=false,lastOpen=0,lastPh="";
+let ws,V=null,sel={},rules=false,cfg={total:10,every:3},hv={nm:"",cd:""},pressed=false,dirty=false,pt=null,side=false,menu=false,abOpen=false,lastOpen=0,lastPh="",autoJoin=false;
 let tok=localStorage.getItem("drtok");
 if(!tok){tok=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("drtok",tok)}
 const saved=()=>{try{return JSON.parse(localStorage.getItem("dr")||"null")}catch(e){return null}};
@@ -88,11 +88,11 @@ const PH={lobby:{i:"🏠",t:"대기실",s:"친구들이 모이면 게임을 시�
 
 function conn(){
   ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
-  ws.onopen=()=>{const s=saved();if(s)tx({t:"join",tok,name:s.name,code:s.code});render()};
+  ws.onopen=()=>{const s=saved();if(s){autoJoin=true;tx({t:"join",tok,name:s.name,code:s.code})}render()};
   ws.onmessage=e=>{
     const m=JSON.parse(e.data);
     if(m.t==="state"){
-      V=m;
+      autoJoin=false;V=m;
       if(V.phase==="lobby")lastOpen=0;
       const pkey=V.phase+(V.vote?V.vote.stage+V.vote.round:"");if(pkey!==lastPh){lastPh=pkey;sel={};abOpen=false;if(PH[V.phase]&&V.phase!=="lobby"&&!(V.vote&&pkey!==V.phase+"who1"))tt(PH[V.phase].i+" "+PH[V.phase].t)}
       if(V.phase==="result"&&lastOpen!==V.day){lastOpen=V.day;if(innerWidth>=700){side=true;menu=false}}
@@ -101,7 +101,7 @@ function conn(){
       render();
     }else if(m.t==="err")tt(m.m);
     else if(m.t==="kicked"){localStorage.removeItem("dr");V=null;sel={};menu=false;tt("방장이 당신을 추방했어요.");render()}
-    else if(m.t==="gone"){localStorage.removeItem("dr");V=null;menu=false;tt("방을 찾을 수 없어요.");render()}
+    else if(m.t==="gone"){localStorage.removeItem("dr");V=null;menu=false;if(autoJoin){autoJoin=false;tt("이전에 있던 방이 사라졌어요. 서버가 쉬었다 켜지면 방이 지워져요. 새 방을 만들어 주세요.")}else tt("방을 찾을 수 없어요. 방 코드를 다시 확인해 주세요.");render()}
   };
   ws.onclose=()=>setTimeout(conn,2000);
 }
@@ -270,6 +270,7 @@ $("#app").addEventListener("click",e=>{
   if(a==="abClose"){abOpen=false;rerender();return}
   if(a==="rulesClose"){rules=false;rerender();window.scrollTo(0,0);return}
   if(a==="create"||a==="join"){
+    autoJoin=false;
     const n=$("#nm")&&$("#nm").value.trim();
     if(!n)return tt("이름을 입력해 주세요.");
     if(a==="create")tx({t:"create",tok,name:n});
