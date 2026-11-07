@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>동랑서미전</title>
+<style>
+:root{--bg:#f3efe6;--fg:#1d2330;--mut:#6a7080;--card:#fffdf8;--line:#d9d2c3;--e:#c2452d;--w:#2b6cb0;--ac:#1d2330;--acf:#f3efe6}
+@media(prefers-color-scheme:dark){:root{--bg:#141a26;--fg:#ece6d8;--mut:#9aa3b5;--card:#1c2535;--line:#2e3a50;--e:#ef7b62;--w:#6fa8e8;--ac:#ece6d8;--acf:#141a26}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+main{max-width:30rem;margin:0 auto;padding:calc(1.5rem + env(safe-area-inset-top,0px)) 1rem calc(3rem + env(safe-area-inset-bottom,0px))}
+h1{font:700 2.4rem/1.1 "Noto Serif KR","Nanum Myeongjo",serif;margin:0;letter-spacing:.04em}
+.sub{color:var(--mut);margin:.2rem 0 1.2rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem;margin:0 0 1rem}
+.card h2{font-size:1rem;margin:0 0 .6rem}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.4rem}
+li{border:1.5px solid var(--line);border-radius:99px;padding:.15rem .8rem;font-size:.95rem}
+li.e{border-color:var(--e);color:var(--e)}li.w{border-color:var(--w);color:var(--w)}li.off{opacity:.5}
+li small{opacity:.8}
+.role{font:700 1.5rem/1.3 "Noto Serif KR","Nanum Myeongjo",serif}
+.role.e{color:var(--e)}.role.w{color:var(--w)}
+.code{font:700 2rem/1.2 "Noto Serif KR",serif;letter-spacing:.3em}
+input,select,button{font:inherit;width:100%;padding:.7rem .8rem;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);margin:.3rem 0}
+button{background:var(--ac);color:var(--acf);border:0;font-weight:700;cursor:pointer}
+button.g{background:none;color:var(--mut);border:1px solid var(--line)}
+button:disabled{opacity:.4}
+:focus-visible{outline:3px solid var(--w);outline-offset:2px}
+.n{color:var(--mut);font-size:.9rem;margin:.4rem 0 0}
+#t{position:fixed;left:1rem;right:1rem;bottom:calc(1rem + env(safe-area-inset-bottom,0px));background:var(--ac);color:var(--acf);padding:.8rem 1rem;border-radius:8px;max-width:28rem;margin:0 auto}
+</style></head>
+<body><main><h1>동랑서미전</h1><p class="sub">東狼西羊戰</p><div id="app"><p class="n">연결 중…</p></div></main><div id="t" hidden role="status"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let ws,V=null,sel={};
+let tok=localStorage.getItem("drtok");
+if(!tok){tok=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("drtok",tok)}
+const saved=()=>{try{return JSON.parse(localStorage.getItem("dr")||"null")}catch(e){return null}};
+const tt=m=>{const t=$("#t");t.textContent=m;t.hidden=false;clearTimeout(tt.h);tt.h=setTimeout(()=>t.hidden=true,4000)};
+const tx=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));else tt("연결 중이에요. 잠시 후 다시 눌러 주세요.")};
+
+function conn(){
+  ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
+  ws.onopen=()=>{const s=saved();if(s)tx({t:"join",tok,name:s.name,code:s.code});render()};
+  ws.onmessage=e=>{
+    const m=JSON.parse(e.data);
+    if(m.t==="state"){
+      V=m;
+      const me=V.players.find(x=>x.id===V.me);
+      try{localStorage.setItem("dr",JSON.stringify({name:me?me.name:"",code:V.code}))}catch(x){}
+      render();
+    }else if(m.t==="err")tt(m.m);
+    else if(m.t==="gone"){localStorage.removeItem("dr");V=null;tt("방을 찾을 수 없어요.");render()}
+  };
+  ws.onclose=()=>setTimeout(conn,2000);
+}
+setInterval(()=>{if(ws&&ws.readyState===1)ws.send('{"t":"ping"}')},25000);
+
+function render(){
+  if(!V){
+    if(document.activeElement&&document.activeElement.tagName==="INPUT")return;
+    $("#app").innerHTML=`<div class="card"><input id="nm" maxlength="12" placeholder="내 이름" aria-label="이름"><button data-a="create">새 방 만들기</button></div>
+<div class="card"><input id="cd" maxlength="4" placeholder="방 코드 4글자" aria-label="방 코드"><button data-a="join">방에 들어가기</button></div>`;
+    return;
+  }
+  const ph=V.phase,pl=V.players,me=pl.find(x=>x.id===V.me)||{};
+  const cls=p=>p.faction==="동"?"e":p.faction==="서"?"w":"";
+  let h=`<div class="card"><p class="n">방 코드</p><div class="code">${esc(V.code)}</div><h2>${ph==="lobby"?"대기실 · "+pl.length+"명":V.day+"일차 · "+{night:"밤",vote:"아침 투표",result:"투표 결과"}[ph]}</h2><ul>${pl.map(p=>`<li class="${cls(p)}${p.on?"":" off"}">${esc(p.name)}${p.faction?` <small>${p.faction}쪽</small>`:""}${p.id===V.me?" (나)":""}</li>`).join("")}</ul></div>`;
+  if(V.role)h+=`<div class="card"><p class="n">오늘의 나</p><div class="role ${cls(me)}">${me.faction}쪽 ${V.role}</div></div>`;
+  const others=pl.filter(x=>x.id!==V.me);
+  const opts=(k,t)=>`<select data-k="${k}" aria-label="${t}"><option value="">${t}</option>${others.map(p=>`<option value="${p.id}"${sel[k]===p.id?" selected":""}>${esc(p.name)}</option>`).join("")}</select>`;
+  if(ph==="lobby"){
+    h+=V.host?`<p class="n">친구들에게 방 코드를 알려 주세요.</p><button data-a="start"${pl.length<2?" disabled":""}>게임 시작</button>`:`<p class="n">방장이 시작하기를 기다리는 중이에요.</p>`;
+  }else if(ph==="result"){
+    const r=V.res||{};
+    const line=(t,x)=>x?`<p><b>${t} 1위: ${esc(x.name)}</b> — 정체가 ${x.ok?"맞았어요":"아니었어요"}.</p>`:`<p>${t} 투표가 없었어요.</p>`;
+    h+=`<div class="card">${line("양",r.sheep)}${line("늑대",r.wolf)}<p class="n">점수와 효과는 다음 단계에서 계산해요.</p></div>`;
+    h+=V.host?`<button data-a="next">다음 밤으로</button>`:`<p class="n">방장이 다음 밤을 시작하기를 기다리는 중이에요.</p>`;
+  }else if(me.done){
+    h+=`<div class="card">제출했어요. 다른 사람을 기다리는 중이에요.</div>`;
+  }else if(ph==="night"){
+    h+=V.role==="늑대"
+      ?`<div class="card"><h2>누구를 공격할까요?</h2>${opts("t","공격 포기")}<button data-a="act">밤 보내기</button></div>`
+      :`<div class="card"><h2>양은 밤에 할 일이 없어요</h2><button data-a="act">잠들기</button></div>`;
+  }else if(ph==="vote"){
+    h+=`<div class="card"><h2>어젯밤을 떠올려 보세요</h2>${opts("s","양으로 의심되는 사람")}${opts("w","늑대로 의심되는 사람")}<button data-a="vote">투표하기</button></div>`;
+  }
+  if(V.host&&(ph==="night"||ph==="vote"))h+=`<p class="n">제출 ${pl.filter(p=>p.done).length}/${pl.length}</p><button class="g" data-a="force">지금 넘기기</button>`;
+  if(V.host&&ph!=="lobby")h+=`<button class="g" data-a="reset">새 게임 (대기실로)</button>`;
+  h+=`<button class="g" data-a="leave">방 나가기</button>`;
+  $("#app").innerHTML=h;
+}
+$("#app").addEventListener("change",e=>{if(e.target.dataset.k)sel[e.target.dataset.k]=e.target.value});
+$("#app").addEventListener("click",e=>{
+  const a=e.target.dataset.a;if(!a)return;
+  if(a==="create"||a==="join"){
+    const n=$("#nm")&&$("#nm").value.trim();
+    if(!n)return tt("이름을 입력해 주세요.");
+    if(a==="create")tx({t:"create",tok,name:n});
+    else{
+      const c=$("#cd").value.trim();
+      if(!c)return tt("방 코드를 입력해 주세요.");
+      tx({t:"join",tok,name:n,code:c});
+    }
+  }else if(a==="act"){tx({t:"act",target:sel.t||""});sel={}}
+  else if(a==="vote"){
+    if(!sel.s||!sel.w)return tt("양과 늑대로 의심되는 사람을 각각 골라 주세요.");
+    tx({t:"vote",sheep:sel.s,wolf:sel.w});sel={};
+  }else if(a==="leave"){localStorage.removeItem("dr");V=null;sel={};ws.close()}
+  else tx({t:a});
+});
+conn();
+</script></body></html>
