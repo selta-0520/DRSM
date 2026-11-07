@@ -3,54 +3,88 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>동랑서미전</title>
 <style>
-:root{--bg:#f3efe6;--fg:#1d2330;--mut:#6a7080;--card:#fffdf8;--line:#d9d2c3;--e:#c2452d;--w:#2b6cb0;--ac:#1d2330;--acf:#f3efe6}
-@media(prefers-color-scheme:dark){:root{--bg:#141a26;--fg:#ece6d8;--mut:#9aa3b5;--card:#1c2535;--line:#2e3a50;--e:#ef7b62;--w:#6fa8e8;--ac:#ece6d8;--acf:#141a26}}
+:root{--bg:#f3efe6;--fg:#1d2330;--mut:#6a7080;--card:#fffdf8;--line:#d9d2c3;--e:#c2452d;--w:#2b6cb0;--ac:#1d2330;--acf:#f3efe6;--soft:rgba(29,35,48,.06)}
+@media(prefers-color-scheme:dark){:root{--bg:#141a26;--fg:#ece6d8;--mut:#9aa3b5;--card:#1c2535;--line:#2e3a50;--e:#ef7b62;--w:#6fa8e8;--ac:#ece6d8;--acf:#141a26;--soft:rgba(236,230,216,.08)}}
+:root[data-ph=night],:root[data-ph=howl]{--bg:#0e1430;--fg:#e8eaf6;--mut:#9aa6d6;--card:#172043;--line:#2c386b;--e:#ff8a73;--w:#7db3ff;--ac:#e8eaf6;--acf:#0e1430;--soft:rgba(232,234,246,.08)}
+:root[data-ph=dawn],:root[data-ph=vote],:root[data-ph=result]{--bg:#fbf0d8;--fg:#2a2118;--mut:#7a6a55;--card:#fffaf0;--line:#e6d6b6;--e:#c2452d;--w:#2b6cb0;--ac:#2a2118;--acf:#fbf0d8;--soft:rgba(42,33,24,.06)}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
-main{max-width:30rem;margin:0 auto;padding:calc(1.5rem + env(safe-area-inset-top,0px)) 1rem calc(3rem + env(safe-area-inset-bottom,0px))}
+html{background:var(--bg);transition:background .5s}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;transition:background .5s,color .5s;min-height:100vh}
+main{max-width:30rem;margin:0 auto;padding:calc(4.2rem + env(safe-area-inset-top,0px)) 1rem calc(3rem + env(safe-area-inset-bottom,0px))}
 h1{font:700 2.4rem/1.1 "Noto Serif KR","Nanum Myeongjo",serif;margin:0;letter-spacing:.04em}
 .sub{color:var(--mut);margin:.2rem 0 1.2rem}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem;margin:0 0 1rem}
-.card h2{font-size:1rem;margin:0 0 .6rem}
-ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.4rem}
-li{border:1.5px solid var(--line);border-radius:99px;padding:.15rem .8rem;font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem;margin:0 0 .9rem;transition:background .5s,border-color .5s}
+.card h2{font-size:1.05rem;margin:0 0 .5rem}
+.card p{margin:.3rem 0}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.35rem}
+li{border:1.5px solid var(--line);border-radius:99px;padding:.05rem .65rem;font-size:.85rem}
 li.e{border-color:var(--e);color:var(--e)}li.w{border-color:var(--w);color:var(--w)}li.off{opacity:.5}
 li small{opacity:.8}
 .role{font:700 1.5rem/1.3 "Noto Serif KR","Nanum Myeongjo",serif}
 .role.e{color:var(--e)}.role.w{color:var(--w)}
 .code{font:700 2rem/1.2 "Noto Serif KR",serif;letter-spacing:.3em}
-input,select,button{font:inherit;width:100%;padding:.7rem .8rem;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);margin:.3rem 0}
+.code.s{font-size:1.4rem}
+input,select,button{font:inherit;width:100%;padding:.7rem .8rem;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);margin:.3rem 0}
 button{background:var(--ac);color:var(--acf);border:0;font-weight:700;cursor:pointer}
 button.g{background:none;color:var(--mut);border:1px solid var(--line)}
-button:disabled{opacity:.4}
+button:disabled{opacity:.35;cursor:default}
 :focus-visible{outline:3px solid var(--w);outline-offset:2px}
 .n{color:var(--mut);font-size:.9rem;margin:.4rem 0 0}
 label.n{display:block}
-.top{display:flex;justify-content:flex-start;margin:-.6rem 0 .8rem}
-.sbadge{position:fixed;top:calc(.6rem + env(safe-area-inset-top,0px));right:.6rem;z-index:30;width:auto;margin:0;padding:.35rem .9rem;border-radius:99px;font-size:.95rem}
-#side{position:fixed;top:0;right:0;bottom:0;width:min(22rem,92vw);background:var(--card);border-left:1px solid var(--line);padding:calc(3.2rem + env(safe-area-inset-top,0px)) 1rem 2rem;overflow:auto;z-index:20;box-shadow:-6px 0 18px rgba(0,0,0,.18)}
-#side[hidden]{display:none}
+button.sm{width:auto;padding:.3rem .9rem;font-size:.9rem;margin:0}
+button.go{padding:1rem;font-size:1.15rem;margin:.9rem 0 0;border-radius:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.6rem 0 0}
+.grid.one{grid-template-columns:1fr}
+button.ch{background:var(--card);color:var(--fg);border:2px solid var(--line);margin:0;padding:.8rem .5rem;font-weight:600;text-align:center;min-height:3.2rem;line-height:1.3}
+button.ch small{display:block;font-weight:400;color:var(--mut);font-size:.8rem}
+button.ch.e{border-color:var(--e)}button.ch.w{border-color:var(--w)}
+button.ch.on{background:var(--ac);color:var(--acf);border-color:var(--ac)}
+button.ch.on small{color:var(--acf);opacity:.8}
+.hd{display:flex;gap:.8rem;align-items:center}
+.hd .ic{font-size:2.2rem;line-height:1}
+.hd h2{font:700 1.35rem/1.3 "Noto Serif KR","Nanum Myeongjo",serif;margin:0}
+.hd p{margin:.1rem 0 0}
+.me{display:inline-block;border:2px solid var(--line);border-radius:99px;padding:.2rem 1rem;margin:0 0 .9rem;font-weight:700}
+.me.e{border-color:var(--e);color:var(--e)}.me.w{border-color:var(--w);color:var(--w)}
+.news p{font-size:.95rem}
 .board h2{font-size:1.4rem;margin:0 0 .8rem}
 .board p{font-size:1.35rem;line-height:1.5;margin:.5rem 0}
-button.sm{width:auto;padding:.3rem .9rem;font-size:.9rem;margin:0}
-.rl p{margin:.3rem 0}
 .sides{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
 .sides ul{flex-direction:column;align-items:flex-start}
-.sides .sw{color:var(--w);font-weight:700;margin:0 0 .3rem}
-.sides .se{color:var(--e);font-weight:700;margin:0 0 .3rem;text-align:right}
+.sides .sw{color:var(--w);font-weight:700;margin:0 0 .3rem;font-size:.9rem}
+.sides .se{color:var(--e);font-weight:700;margin:0 0 .3rem;text-align:right;font-size:.9rem}
 .sides>div:last-child ul{align-items:flex-end}
-#t{position:fixed;left:1rem;right:1rem;bottom:calc(1rem + env(safe-area-inset-bottom,0px));background:var(--ac);color:var(--acf);padding:.8rem 1rem;border-radius:8px;max-width:28rem;margin:0 auto}
+.res{border-top:1px solid var(--line);margin-top:.7rem;padding-top:.5rem}
+.res:first-of-type{border-top:0;margin-top:0;padding-top:0}
+.rl p{margin:.3rem 0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.2rem 0}
+#bar{position:fixed;top:0;left:0;right:0;z-index:30;background:var(--card);border-bottom:1px solid var(--line);padding:calc(.5rem + env(safe-area-inset-top,0px)) .7rem .5rem;transition:background .5s}
+#bar>div{max-width:30rem;margin:0 auto;display:flex;align-items:center;gap:.6rem}
+#bar button{width:auto;margin:0}
+#mb{padding:.4rem .8rem;font-size:1.05rem}
+#bt{flex:1;text-align:center;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sb{padding:.35rem .9rem;border-radius:99px;font-size:.95rem}
+#sb[hidden]{display:none}
+.dr{position:fixed;top:0;bottom:0;width:min(22rem,92vw);background:var(--card);padding:calc(1rem + env(safe-area-inset-top,0px)) 1rem 2rem;overflow:auto;z-index:40;box-shadow:0 0 18px rgba(0,0,0,.25)}
+.dr[hidden]{display:none}
+#side{right:0;border-left:1px solid var(--line)}
+#menu{left:0;border-right:1px solid var(--line)}
+#bd{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:35}
+#bd[hidden]{display:none}
+#t{pointer-events:none;position:fixed;left:1rem;right:1rem;bottom:calc(1rem + env(safe-area-inset-bottom,0px));background:var(--ac);color:var(--acf);padding:.8rem 1rem;border-radius:10px;max-width:28rem;margin:0 auto;z-index:50}
 </style></head>
-<body><main><h1>동랑서미전</h1><p class="sub">東狼西羊戰</p><div class="top"><button class="g sm" id="rb">설명서</button></div><div id="app"><p class="n">연결 중…</p></div></main><div id="t" hidden role="status"></div><button id="sb" class="sbadge" hidden aria-label="내 점수 내역 열기"></button><aside id="side" hidden aria-label="내 점수 내역"></aside>
+<body><header id="bar"><div><button id="mb" class="g" aria-label="메뉴 열기">☰ 메뉴</button><div id="bt">동랑서미전</div><button id="sb" hidden aria-label="내 점수 내역 열기"></button></div></header>
+<main><div id="app"><p class="n">연결 중…</p></div></main><div id="t" hidden role="status"></div><div id="bd" hidden></div><aside id="menu" class="dr" hidden aria-label="메뉴"></aside><aside id="side" class="dr" hidden aria-label="내 점수 내역"></aside>
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let ws,V=null,sel={},rules=false,cfg={total:10,every:3},hv={nm:"",cd:""},pressed=false,dirty=false,pt=null,side=false,lastOpen=0;
+let ws,V=null,sel={},rules=false,cfg={total:10,every:3},hv={nm:"",cd:""},pressed=false,dirty=false,pt=null,side=false,menu=false,abOpen=false,lastOpen=0,lastPh="";
 let tok=localStorage.getItem("drtok");
 if(!tok){tok=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("drtok",tok)}
 const saved=()=>{try{return JSON.parse(localStorage.getItem("dr")||"null")}catch(e){return null}};
 const tt=m=>{const t=$("#t");t.textContent=m;t.hidden=false;clearTimeout(tt.h);tt.h=setTimeout(()=>t.hidden=true,4000)};
 const tx=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));else tt("연결 중이에요. 잠시 후 다시 눌러 주세요.")};
+const PH={lobby:{i:"🏠",t:"대기실",s:"친구들이 모이면 게임을 시작해요"},draw:{i:"🎴",t:"역할 뽑기",s:"오늘의 진영과 역할을 정해요"},howl:{i:"🐺",t:"밤이 왔어요 · 하울링",s:"늑대들이 하울링을 정하고 있어요"},night:{i:"🌙",t:"밤이 왔어요",s:"각자 밤의 행동을 정해요"},dawn:{i:"🌅",t:"아침이 밝았어요",s:"밤이 지났어요"},vote:{i:"🗳️",t:"아침 투표",s:"누가 양이고 누가 늑대일까요?"},result:{i:"📜",t:"투표 결과",s:"결과와 내 점수를 확인해요"},end:{i:"🏆",t:"게임 종료",s:"최종 순위예요"}};
 
 function conn(){
   ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
@@ -60,13 +94,14 @@ function conn(){
     if(m.t==="state"){
       V=m;
       if(V.phase==="lobby")lastOpen=0;
-      if(V.phase==="result"&&lastOpen!==V.day){lastOpen=V.day;side=true}
+      if(V.phase!==lastPh){lastPh=V.phase;sel={};abOpen=false;if(PH[V.phase]&&V.phase!=="lobby")tt(PH[V.phase].i+" "+PH[V.phase].t)}
+      if(V.phase==="result"&&lastOpen!==V.day){lastOpen=V.day;if(innerWidth>=700){side=true;menu=false}}
       const me=V.players.find(x=>x.id===V.me);
       try{localStorage.setItem("dr",JSON.stringify({name:me?me.name:"",code:V.code}))}catch(x){}
       render();
     }else if(m.t==="err")tt(m.m);
-    else if(m.t==="kicked"){localStorage.removeItem("dr");V=null;sel={};tt("방장이 당신을 추방했어요.");render()}
-    else if(m.t==="gone"){localStorage.removeItem("dr");V=null;tt("방을 찾을 수 없어요.");render()}
+    else if(m.t==="kicked"){localStorage.removeItem("dr");V=null;sel={};menu=false;tt("방장이 당신을 추방했어요.");render()}
+    else if(m.t==="gone"){localStorage.removeItem("dr");V=null;menu=false;tt("방을 찾을 수 없어요.");render()}
   };
   ws.onclose=()=>setTimeout(conn,2000);
 }
@@ -85,6 +120,7 @@ const RULES=`<div class="rl">
 <div class="card"><h2>점수 보기</h2><p>내 점수는 투표가 끝난 뒤에 오른쪽 위에 표시되고, 눌러서 밤에 일어난 일과 점수가 바뀐 이유를 볼 수 있어요. 다음 결과가 나올 때까지 그대로예요. 모두의 점수는 방장이 정한 주기마다 공개되고, 마지막에는 최종 순위가 나와요.</p></div>
 </div>`;
 const signed=n=>(n>0?"+":"")+n;
+const LIVE=["draw","howl","night","dawn","vote","result"];
 function renderChrome(){
   const sb=$("#sb"),sd=$("#side");
   const has=!!(V&&V.my&&V.my.shown!=null);
@@ -92,99 +128,148 @@ function renderChrome(){
   if(has)sb.textContent="내 점수 "+V.my.shown+"점";
   if(!has)side=false;
   sd.hidden=!side;
+  $("#menu").hidden=!menu;
+  $("#bd").hidden=!(side||menu);
+  document.documentElement.dataset.ph=V?V.phase:"";
+  $("#bt").textContent=!V?"동랑서미전":V.phase==="lobby"?"대기실":V.phase==="end"?"게임 종료":V.day+"/"+V.total+"일차 · "+PH[V.phase].t.replace("밤이 왔어요 · ","밤 · ").replace("밤이 왔어요","밤");
   if(!side||!V)return;
   const l=V.log;
-  if(!l){sd.innerHTML=`<button class="g" data-a="sideClose">닫기</button><p class="n">첫 투표 결과가 나오면 점수 내역을 볼 수 있어요.</p>`;return}
+  const cl=`<button class="g" data-a="sideClose">닫기</button>`;
+  if(!l){sd.innerHTML=cl+`<p class="n">첫 투표 결과가 나오면 점수 내역을 볼 수 있어요.</p>`;return}
   const li=e=>`<p>${esc(e.w)}${e.d?` <b>${signed(e.d)}점</b>`:""}</p>`;
   const sec=(t,k,empty)=>{const a=l.filter(e=>e.k===k);return `<h2>${t}</h2>${a.length?a.map(li).join(""):`<p class="n">${empty}</p>`}`};
   const day=l.reduce((a,e)=>a+e.d,0);
-  sd.innerHTML=`<button class="g" data-a="sideClose">닫기</button><h2>${V.logDay}일차 점수 내역</h2>${sec("밤에 일어난 일","n","점수가 바뀐 일이 없어요.")}${sec("아침 투표 결과","v","점수가 바뀐 일이 없어요.")}<p class="role">내 점수 ${V.my.shown}점</p><p class="n">${V.logDay}일차에 ${signed(day)}점</p>`;
+  sd.innerHTML=cl+`<h2>${V.logDay}일차 점수 내역</h2>${sec("밤에 일어난 일","n","점수가 바뀐 일이 없어요.")}${sec("아침 투표 결과","v","점수가 바뀐 일이 없어요.")}<p class="role">내 점수 ${V.my.shown}점</p><p class="n">${V.logDay}일차에 ${signed(day)}점</p>`;
 }
+function renderMenu(){
+  const m=$("#menu");
+  if(!menu)return;
+  let h=`<button class="g" data-m="close">닫기</button><h2 style="margin-top:1rem">메뉴</h2><button data-m="rules">${rules?"설명서 닫기":"설명서 보기"}</button>`;
+  if(V){
+    const pl=V.players;
+    h+=`<p class="n">방 코드</p><div class="code s">${esc(V.code)}</div><h2 style="margin-top:1rem">참가자 ${pl.length}명</h2>`;
+    h+=pl.map(p=>`<div class="row"><span>${esc(p.name)}${p.bot?" (봇)":""}${p.id===V.me?" (나)":""}${p.faction&&V.phase!=="draw"&&V.phase!=="lobby"?" · "+p.faction+"쪽":""}</span>${V.host&&p.id!==V.me?`<button class="g sm" data-m="kick" data-id="${esc(p.id)}">추방</button>`:""}</div>`).join("");
+    if(V.host){
+      h+=`<h2 style="margin-top:1rem">방장 기능</h2>`;
+      if(LIVE.includes(V.phase)&&V.phase!=="draw0")h+=`<button class="g" data-m="force">지금 넘기기</button>`;
+      if(V.phase!=="lobby")h+=`<button class="g" data-m="reset">새 게임 (대기실로)</button>`;
+    }
+    h+=`<button class="g" data-m="leave" style="margin-top:1rem">방 나가기</button>`;
+  }
+  m.innerHTML=h;
+}
+const pk=(k,v,t,cls,sub,on)=>`<button class="ch ${cls||""}${on?" on":""}" data-pk="${k}" data-v="${esc(v)}">${t}${sub?`<small>${sub}</small>`:""}</button>`;
 function render(){
   renderChrome();
-  $("#rb").textContent=rules?"설명서 닫기":"설명서";
   if(pressed||(document.activeElement&&document.activeElement.tagName==="INPUT")){dirty=true;return}
   dirty=false;
+  renderMenu();
   if(rules){$("#app").innerHTML=RULES+`<button data-a="rulesClose">닫기</button>`;return}
   if(!V){
-    $("#app").innerHTML=`<div class="card"><input id="nm" maxlength="12" placeholder="내 이름" aria-label="이름" value="${esc(hv.nm)}"><button data-a="create">새 방 만들기</button></div>
+    $("#app").innerHTML=`<h1>동랑서미전</h1><p class="sub">東狼西羊戰</p><div class="card"><input id="nm" maxlength="12" placeholder="내 이름" aria-label="이름" value="${esc(hv.nm)}"><button data-a="create">새 방 만들기</button></div>
 <div class="card"><input id="cd" maxlength="4" placeholder="방 코드 4글자" aria-label="방 코드" value="${esc(hv.cd)}"><button data-a="join">방에 들어가기</button></div>`;
     return;
   }
   const ph=V.phase,pl=V.players,me=pl.find(x=>x.id===V.me)||{};
   const cls=p=>p.faction==="동"?"e":p.faction==="서"?"w":"";
   const chip=p=>`<li class="${cls(p)}${p.on?"":" off"}">${esc(p.name)}${p.hw?" <small>하울링</small>":""}${p.bot?" (봇)":""}${p.id===V.me?" (나)":""}</li>`;
-  const split=ph!=="lobby"&&ph!=="draw"&&pl.some(p=>p.faction);
-  const listHtml=split
-    ?`<div class="sides"><div><p class="sw">서쪽</p><ul>${pl.filter(p=>p.faction==="서").map(chip).join("")}</ul></div><div><p class="se">동쪽</p><ul>${pl.filter(p=>p.faction==="동").map(chip).join("")}</ul></div></div>`
-    :`<ul>${pl.map(chip).join("")}</ul>`;
-  let h=`<div class="card"><p class="n">방 코드</p><div class="code">${esc(V.code)}</div><h2>${ph==="lobby"?"대기실 · "+pl.length+"명":V.day+"/"+V.total+"일차 · "+{draw:"역할 뽑기",howl:"밤 · 하울링",night:"밤 · 행동",dawn:"아침",vote:"아침 투표",result:"투표 결과",end:"게임 종료"}[ph]}</h2>${listHtml}</div>`;
-  if(V.role)h+=`<div class="card"><p class="n">오늘의 나</p><div class="role ${cls(me)}">${me.faction}쪽 ${V.role}</div></div>`;
-  if(V.board)h+=`<div class="card board"><h2>${ph==="end"?"최종 순위":"중간 점수"}</h2>${V.board.map((b,i)=>`<p>${i+1}. ${esc(b.name)} — ${b.score}점${b.win?" · 우승":""}</p>`).join("")}</div>`;
-  if(V.pub&&V.pub.length&&ph!=="draw")h+=`<div class="card"><h2>공개 소식</h2>${V.pub.map(x=>`<p>${esc(x)}</p>`).join("")}</div>`;
-  if(V.note&&(ph==="night"||ph==="dawn"||ph==="vote"))h+=`<div class="card"><h2>나에게만 온 소식</h2><p>${esc(V.note)}</p></div>`;
   const others=pl.filter(x=>x.id!==V.me);
-  const opts=(k,t,l)=>`<select data-k="${k}" aria-label="${t}"><option value="">${t}</option>${(l||others).map(p=>`<option value="${p.id}"${sel[k]===p.id?" selected":""}>${esc(p.name)}</option>`).join("")}</select>`;
+  const pers=(k,list,cur)=>`<div class="grid">${list.map(p=>pk(k,p.id,esc(p.name)+(p.id===V.me?" (나)":""),cls(p),p.faction?p.faction+"쪽":"",cur===p.id)).join("")}</div>`;
+  const P=PH[ph];
+  let h="";
+  const prog=LIVE.includes(ph)?` · 확인/제출 ${pl.filter(p=>p.done).length}/${pl.length}`:"";
+  if(ph==="lobby")h+=`<div class="card"><p class="n">방 코드 · 친구들에게 알려 주세요</p><div class="code">${esc(V.code)}</div></div>`;
+  else h+=`<div class="card hd"><div class="ic" aria-hidden="true">${P.i}</div><div><h2>${P.t}</h2><p class="n">${P.s}${prog}</p></div></div>`;
+  if(V.role&&ph!=="end")h+=`<div class="me ${cls(me)}">오늘의 나 · ${me.faction}쪽 ${V.role}</div>`;
+  if(V.board)h+=`<div class="card board"><h2>${ph==="end"?"최종 순위":"중간 점수"}</h2>${V.board.map((b,i)=>`<p>${i+1}. ${esc(b.name)} — ${b.score}점${b.win?" · 우승":""}</p>`).join("")}</div>`;
+  const waitCard=()=>`<div class="card"><h2>제출했어요</h2><p class="n">다른 사람을 기다리는 중이에요.</p></div>`;
   if(ph==="lobby"){
-    h+=V.host?`<p class="n">친구들에게 방 코드를 알려 주세요. 원활한 진행에는 4명 이상을 권장해요.</p><label class="n" for="tot">진행 턴 수 (최소 10턴)</label><input id="tot" type="number" inputmode="numeric" min="10" max="99" value="${esc(cfg.total)}"><label class="n" for="ev">모두의 점수를 공개하는 주기 (턴마다, 0이면 공개 안 함)</label><input id="ev" type="number" inputmode="numeric" min="0" max="99" value="${esc(cfg.every)}"><button class="g" data-a="addbot"${pl.length>=50?" disabled":""}>봇 추가</button>${pl.some(p=>p.bot)?`<button class="g" data-a="rmbot">봇 한 명 빼기</button>`:""}<button data-a="start"${pl.length<2?" disabled":""}>게임 시작</button>`:`<p class="n">방장이 시작하기를 기다리는 중이에요.</p>`;
+    h+=`<div class="card"><h2>참가자 · ${pl.length}명</h2><ul>${pl.map(chip).join("")}</ul></div>`;
+    h+=V.host?`<div class="card"><p class="n" style="margin-top:0">원활한 진행에는 4명 이상을 권장해요.</p><label class="n" for="tot">진행 턴 수 (최소 10턴)</label><input id="tot" type="number" inputmode="numeric" min="10" max="99" value="${esc(cfg.total)}"><label class="n" for="ev">모두의 점수를 공개하는 주기 (턴마다, 0이면 공개 안 함)</label><input id="ev" type="number" inputmode="numeric" min="0" max="99" value="${esc(cfg.every)}"><button class="g" data-a="addbot"${pl.length>=50?" disabled":""}>봇 추가</button>${pl.some(p=>p.bot)?`<button class="g" data-a="rmbot">봇 한 명 빼기</button>`:""}</div><button class="go" data-a="start"${pl.length<2?" disabled":""}>게임 시작</button>`:`<div class="card"><p class="n" style="margin-top:0">방장이 시작하기를 기다리는 중이에요.</p></div>`;
   }else if(ph==="end"){
-    h+=`<p class="n">게임이 끝났어요. 가장 높은 점수를 얻은 사람이 우승이에요. 동점이면 공동 우승이에요.</p>`;
+    h+=`<div class="card"><p class="n" style="margin:0">게임이 끝났어요. 가장 높은 점수를 얻은 사람이 우승이에요. 동점이면 공동 우승이에요.</p></div>`;
   }else if(ph==="result"){
     const r=V.res||{},tal=r.tal||{};
     const tl=k=>(tal[k]||[]).map((c,i,arr)=>`<p class="n">${arr.length>1?(i?"재투표":"1차 투표"):"득표"}: ${c.length?c.map(x=>esc(x.name)+" "+x.n+"표").join(" · "):"없음"}</p>`).join("");
-    const kind=(t,k,x,role)=>`<div class="card"><h2>${t} 투표 결과</h2>${tl(k)}${x?`<p><b>1위: ${esc(x.name)}</b> — 정체가 ${x.ok?"맞았어요":"아니었어요"}.</p><p>${x.ok?`다음 턴에 ${role==="양"?"양으로":"늑대로"} 고정됩니다. (진영은 랜덤)`:"투표로 뽑힌 사람을 제외한 모두의 점수를 -2점 깎습니다."}</p>`:`<p>뽑힌 사람이 없어요. (기권 처리)</p>`}</div>`;
-    h+=kind("양","sheep",r.sheep,"양")+kind("늑대","wolf",r.wolf,"늑대")+`<button class="g" data-a="sideOpen">내 점수 내역 보기</button>`+`<p class="n">${V.every>0?`다른 사람의 점수는 ${V.every}턴마다 공개돼요.`:"중간 점수는 공개되지 않아요. 마지막에 최종 순위가 나와요."}</p>`;
-    h+=me.done?`<p class="n">확인했어요. 다른 사람을 기다리는 중이에요.</p>`:`<button data-a="ok">${V.day>=V.total?"확인 (최종 순위 보기)":"확인 (다음 밤으로)"}</button>`;
+    const kind=(t,k,x,role)=>`<div class="res"><h2>${t} 투표 결과</h2>${tl(k)}${x?`<p><b>1위: ${esc(x.name)}</b> — 정체가 ${x.ok?"맞았어요":"아니었어요"}.</p><p>${x.ok?`다음 턴에 ${role==="양"?"양으로":"늑대로"} 고정됩니다. (진영은 랜덤)`:"투표로 뽑힌 사람을 제외한 모두의 점수를 -2점 깎습니다."}</p>`:`<p>뽑힌 사람이 없어요. (기권 처리)</p>`}</div>`;
+    h+=`<div class="card">${kind("양","sheep",r.sheep,"양")}${kind("늑대","wolf",r.wolf,"늑대")}</div><button class="g" data-a="sideOpen">내 점수 내역 보기</button><p class="n">${V.every>0?`다른 사람의 점수는 ${V.every}턴마다 공개돼요.`:"중간 점수는 공개되지 않아요. 마지막에 최종 순위가 나와요."}</p>`;
+    h+=me.done?`<p class="n">확인했어요. 다른 사람을 기다리는 중이에요.</p>`:`<button class="go" data-a="ok">${V.day>=V.total?"확인 (최종 순위 보기)":"확인 (다음 밤으로)"}</button>`;
   }else if(ph==="dawn"){
-    h+=`<div class="card"><h2>아침이 밝았어요</h2><p>밤이 지났어요. 모두 확인을 누르면 아침 투표로 넘어가요.</p></div>`+(me.done?`<p class="n">확인했어요. 다른 사람을 기다리는 중이에요.</p>`:`<button data-a="ok">확인</button>`);
+    h+=`<div class="card"><p style="margin:0">모두 확인을 누르면 아침 투표로 넘어가요.</p></div>`+(me.done?`<p class="n">확인했어요. 다른 사람을 기다리는 중이에요.</p>`:`<button class="go" data-a="ok">확인</button>`);
   }else if(me.done){
-    h+=`<div class="card">${ph==="howl"&&V.role!=="늑대"?"늑대들이 하울링을 정하는 중이에요.":"제출했어요. 다른 사람을 기다리는 중이에요."}</div>`;
+    h+=ph==="howl"&&V.role!=="늑대"?`<div class="card"><h2>늑대들이 정하는 중이에요</h2><p class="n">하울링이 끝나면 밤 행동을 정해요.</p></div>`:waitCard();
   }else if(ph==="draw"){
     const my=V.my||{};
-    if(my.lock)h+=`<div class="card"><h2>역할이 고정된 날이에요</h2><p>오늘 당신의 역할은 <b>${my.lockRole}</b>이에요. 진영은 밤이 되면 알려져요. 능력은 쓸 수 없어요.</p><button data-a="draw">확인</button></div>`;
+    if(my.lock)h+=`<div class="card"><h2>역할이 고정된 날이에요</h2><p>오늘 당신의 역할은 <b>${my.lockRole}</b>이에요. 진영은 밤이 되면 알려져요. 능력은 쓸 수 없어요.</p></div><button class="go" data-a="draw">확인</button>`;
     else{
-      h+=`<div class="card"><h2>오늘 능력을 쓸까요?</h2><p class="n">진영과 역할을 직접 정하는 능력이에요. 쓰면 사용했다는 사실이 모두에게 알려지고, 무엇을 골랐는지는 비밀이에요. 쓰지 않으면 진영과 역할이 랜덤으로 정해져요.</p><button data-a="draw">능력 쓰지 않기</button></div>`;
-      if(my.abil<2)h+=`<div class="card"><h2>능력 사용 (남은 ${2-my.abil}회)</h2><select data-k="f" aria-label="진영"><option value="">진영 선택</option><option value="동"${sel.f==="동"?" selected":""}>동쪽</option><option value="서"${sel.f==="서"?" selected":""}>서쪽</option></select><select data-k="r" aria-label="역할"><option value="">역할 선택</option><option value="양"${sel.r==="양"?" selected":""}>양</option><option value="늑대"${sel.r==="늑대"?" selected":""}>늑대</option></select><button class="g" data-a="ability">능력 사용하기</button></div>`;
+      h+=`<div class="card"><h2>오늘 능력을 쓸까요?</h2><p class="n">진영과 역할을 직접 정하는 능력이에요. 쓰면 사용했다는 사실이 모두에게 알려지고, 무엇을 골랐는지는 비밀이에요. 쓰지 않으면 랜덤으로 정해져요.</p><button class="go" data-a="draw">능력 쓰지 않기</button></div>`;
+      if(my.abil<2){
+        h+=abOpen
+          ?`<div class="card"><h2>능력 사용 (남은 ${2-my.abil}회)</h2><p class="n">진영</p><div class="grid">${pk("f","동","동쪽","e","",sel.f==="동")}${pk("f","서","서쪽","w","",sel.f==="서")}</div><p class="n">역할</p><div class="grid">${pk("r","양","양","","",sel.r==="양")}${pk("r","늑대","늑대","","",sel.r==="늑대")}</div><button class="go" data-a="ability"${sel.f&&sel.r?"":" disabled"}>${sel.f&&sel.r?sel.f+"쪽 "+sel.r+"(으)로 능력 사용":"진영과 역할을 골라 주세요"}</button><button class="g" data-a="abClose">접기</button></div>`
+          :`<button class="g" data-a="abOpen">능력 사용하기 (남은 ${2-my.abil}회)</button>`;
+      }
     }
   }else if(ph==="howl"){
     const my=V.my||{};
-    h+=`<div class="card"><h2>하울링을 할까요?</h2><p class="n">하울링한 늑대끼리는 서로를 알 수 있어요. 혼자만 하면 정체가 모두에게 알려지고 -2점이에요. 하울링이 끝나면 모두 밤 행동을 정해요.</p><select data-k="h" aria-label="하울링"><option value="">하울링 안 함</option>${my.howl<3?`<option value="1"${sel.h==="1"?" selected":""}>하울링 하기 (남은 ${3-my.howl}회)</option>`:""}</select><button data-a="howl">결정하기</button></div>`;
+    h+=`<div class="card"><h2>하울링을 할까요?</h2><p class="n">하울링한 늑대끼리는 서로를 알 수 있어요. 혼자만 하면 정체가 모두에게 알려지고 -2점이에요. 하울링이 끝나면 모두 밤 행동을 정해요.</p><div class="grid">${pk("h","","하울링 안 함","","",sel.h!=="1")}${my.howl<3?pk("h","1","하울링 하기","",`남은 ${3-my.howl}회`,sel.h==="1"):""}</div></div><button class="go" data-a="howl">결정하기</button>`;
   }else if(ph==="night"){
     const my=V.my||{};
-    const so=(v,t)=>`<option value="${v}"${sel.k===v?" selected":""}>${t}</option>`;
-    h+=V.role==="늑대"
-      ?`<div class="card"><h2>누구를 공격할까요?</h2>${opts("t","공격 포기 (-1점, 굶주림)")}<button data-a="act">밤 보내기</button></div>`
-      :`<div class="card"><h2>밤에 무엇을 할까요?</h2><select data-k="k" aria-label="스킬">${so("","아무것도 안 함")}${so("shepherd","양치기 부르기")}${so("hunter","사냥꾼 부르기")}${my.dis<1?so("disguise","늑대로 위장 (1회)"):""}</select><button data-a="act">밤 보내기</button></div>`;
+    if(V.role==="늑대"){
+      h+=`<div class="card"><h2>누구를 공격할까요?</h2>${pers("t",others,sel.t)}<div class="grid one">${pk("t","none","공격 포기","","-1점 · 굶주림 상태가 돼요",sel.t==="none")}</div></div><button class="go" data-a="act"${sel.t?"":" disabled"}>${sel.t?"밤 보내기":"먼저 선택해 주세요"}</button>`;
+    }else{
+      const sk=sel.k||"";
+      h+=`<div class="card"><h2>밤에 무엇을 할까요?</h2><div class="grid one">${pk("k","","아무것도 안 함","","공격받지 않으면 +3점",sk==="")}${pk("k","shepherd","양치기 부르기","","공격받으면 +2점·공격자 확인 / 아니면 -2점",sk==="shepherd")}${pk("k","hunter","사냥꾼 부르기","","공격받으면 +1점·공격자에게 -2점 / 아니면 -4점",sk==="hunter")}${my.dis<1?pk("k","disguise","늑대로 위장 (1회)","","밤에만 늑대로 판정 · 생존 +3점 없음",sk==="disguise"):""}</div></div><button class="go" data-a="act">밤 보내기</button>`;
+    }
   }else if(ph==="vote"){
     const tie=!!(V.cand.sheep||V.cand.wolf);
     if(!tie){
-      h+=`<div class="card"><h2>누가 양이고 누가 늑대일까요?</h2><p class="n">한 사람을 지목하고, 그 사람이 양인지 늑대인지 골라요. 자기 자신도 지목할 수 있어요.</p>${opts("vt","지목할 사람",pl.filter(p=>!p.ex))}<select data-k="vg" aria-label="양인지 늑대인지"><option value="">양 / 늑대 선택</option><option value="sheep"${sel.vg==="sheep"?" selected":""}>이 사람은 양이에요</option><option value="wolf"${sel.vg==="wolf"?" selected":""}>이 사람은 늑대예요</option></select><button data-a="vote">투표하기</button></div>`;
+      const can=sel.vt&&sel.vg;
+      const tn=can?(pl.find(p=>p.id===sel.vt)||{}).name:"";
+      h+=`<div class="card"><h2>① 지목할 사람</h2><p class="n" style="margin-top:0">자기 자신도 지목할 수 있어요.</p>${pers("vt",pl.filter(p=>!p.ex),sel.vt)}</div><div class="card"><h2>② 이 사람은?</h2><div class="grid">${pk("vg","sheep","양이에요","","",sel.vg==="sheep")}${pk("vg","wolf","늑대예요","","",sel.vg==="wolf")}</div></div><button class="go" data-a="vote"${can?"":" disabled"}>${can?esc(tn)+" — "+(sel.vg==="sheep"?"양":"늑대")+"으로 투표하기":"사람과 양/늑대를 골라 주세요"}</button>`;
     }else{
       const items=[];
-      ["sheep","wolf"].forEach(k=>{if(V.need[k]&&V.cand[k])V.cand[k].forEach(id=>{const p=pl.find(x=>x.id===id);if(p)items.push({v:k+":"+id,t:p.name+" — "+(k==="sheep"?"양으로":"늑대로")+" 지목"})})});
-      h+=`<div class="card"><h2>동표예요. 후보 중에서 다시 투표해요</h2><select data-k="vc" aria-label="후보"><option value="">후보 선택</option>${items.map(i=>`<option value="${i.v}"${sel.vc===i.v?" selected":""}>${esc(i.t)}</option>`).join("")}</select><button data-a="vote">투표하기</button></div>`;
+      ["sheep","wolf"].forEach(k=>{if(V.need[k]&&V.cand[k])V.cand[k].forEach(id=>{const p=pl.find(x=>x.id===id);if(p)items.push({v:k+":"+id,t:esc(p.name),s:(k==="sheep"?"양":"늑대")+"으로 지목"})})});
+      h+=`<div class="card"><h2>동표예요. 후보 중에서 다시 투표해요</h2><div class="grid one">${items.map(i=>pk("vc",i.v,i.t,"",i.s,sel.vc===i.v)).join("")}</div></div><button class="go" data-a="vote"${sel.vc?"":" disabled"}>${sel.vc?"투표하기":"후보를 골라 주세요"}</button>`;
     }
   }
-  if(V.host&&["draw","howl","night","dawn","vote","result"].includes(ph))h+=`<p class="n">${["dawn","result"].includes(ph)?"확인":"제출"} ${pl.filter(p=>p.done).length}/${pl.length}</p><button class="g" data-a="force">지금 넘기기</button>`;
-  if(V.host&&others.length)h+=`<div class="card"><h2>플레이어 추방</h2>${opts("x","추방할 사람 선택")}<button class="g" data-a="kick">추방하기</button></div>`;
-  if(V.host&&ph!=="lobby")h+=`<button class="g" data-a="reset">새 게임 (대기실로)</button>`;
-  h+=`<button class="g" data-a="leave">방 나가기</button>`;
+  if(V.pub&&V.pub.length&&ph!=="draw")h+=`<div class="card news"><h2>공개 소식</h2>${V.pub.map(x=>`<p>${esc(x)}</p>`).join("")}</div>`;
+  if(V.note&&(ph==="night"||ph==="dawn"||ph==="vote"))h+=`<div class="card news"><h2>나에게만 온 소식</h2><p>${esc(V.note)}</p></div>`;
+  if(ph!=="lobby"&&ph!=="draw"&&pl.some(p=>p.faction))h+=`<div class="card"><h2>진영</h2><div class="sides"><div><p class="sw">서쪽</p><ul>${pl.filter(p=>p.faction==="서").map(chip).join("")}</ul></div><div><p class="se">동쪽</p><ul>${pl.filter(p=>p.faction==="동").map(chip).join("")}</ul></div></div></div>`;
   $("#app").innerHTML=h;
 }
+const rerender=()=>{pressed=false;clearTimeout(pt);render()};
 $("#app").addEventListener("change",e=>{if(e.target.dataset.k)sel[e.target.dataset.k]=e.target.value});
 $("#app").addEventListener("input",e=>{const i=e.target;if(i.id==="tot")cfg.total=i.value;if(i.id==="ev")cfg.every=i.value;if(i.id==="nm")hv.nm=i.value;if(i.id==="cd")hv.cd=i.value});
 $("#app").addEventListener("focusout",()=>setTimeout(()=>{if(dirty)render()},400));
 document.addEventListener("pointerdown",()=>{pressed=true;clearTimeout(pt);pt=setTimeout(()=>{pressed=false;if(dirty)render()},2500)},true);
 const rel=()=>setTimeout(()=>{pressed=false;clearTimeout(pt);if(dirty)render()},80);
 document.addEventListener("pointerup",rel,true);document.addEventListener("pointercancel",rel,true);
-$("#sb").addEventListener("click",()=>{side=!side;renderChrome()});
-$("#side").addEventListener("click",e=>{if(e.target.dataset.a==="sideClose"){side=false;renderChrome()}});
-$("#rb").addEventListener("click",()=>{if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();rules=!rules;render();window.scrollTo(0,0)});
+const closeAll=()=>{side=false;menu=false;renderChrome()};
+$("#bd").addEventListener("click",closeAll);
+$("#sb").addEventListener("click",()=>{side=!side;menu=false;renderChrome()});
+$("#mb").addEventListener("click",()=>{menu=!menu;side=false;if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();renderChrome();renderMenu()});
+$("#side").addEventListener("click",e=>{if(e.target.dataset.a==="sideClose")closeAll()});
+$("#menu").addEventListener("click",e=>{
+  const m=e.target.dataset.m;if(!m)return;
+  if(m==="close"){closeAll();return}
+  if(m==="rules"){rules=!rules;menu=false;renderChrome();rerender();window.scrollTo(0,0);return}
+  if(m==="kick"){
+    const t=V.players.find(p=>p.id===e.target.dataset.id);
+    if(!confirm((t?t.name:"이 사람")+"님을 추방할까요?"))return;
+    tx({t:"kick",id:e.target.dataset.id});return;
+  }
+  if(m==="leave"){localStorage.removeItem("dr");V=null;sel={};menu=false;ws.close();renderChrome();rerender();return}
+  if(m==="force"||m==="reset"){menu=false;renderChrome();tx({t:m});return}
+});
 $("#app").addEventListener("click",e=>{
-  const a=e.target.dataset.a;if(!a)return;
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.pk){sel[b.dataset.pk]=b.dataset.v;rerender();return}
+  const a=b.dataset.a;if(!a)return;
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   if(a==="sideOpen"){side=true;renderChrome();return}
-  if(a==="rulesClose"){rules=false;render();window.scrollTo(0,0);return}
+  if(a==="abOpen"){abOpen=true;rerender();return}
+  if(a==="abClose"){abOpen=false;rerender();return}
+  if(a==="rulesClose"){rules=false;rerender();window.scrollTo(0,0);return}
   if(a==="create"||a==="join"){
     const n=$("#nm")&&$("#nm").value.trim();
     if(!n)return tt("이름을 입력해 주세요.");
@@ -194,7 +279,7 @@ $("#app").addEventListener("click",e=>{
       if(!c)return tt("방 코드를 입력해 주세요.");
       tx({t:"join",tok,name:n,code:c});
     }
-  }else if(a==="act"){tx({t:"act",target:sel.t||"",skill:sel.k||""});sel={}}
+  }else if(a==="act"){tx({t:"act",target:sel.t&&sel.t!=="none"?sel.t:"",skill:sel.k||""});sel={}}
   else if(a==="howl"){tx({t:"howl",howl:sel.h==="1"});sel={}}
   else if(a==="vote"){
     const tie=!!(V.cand.sheep||V.cand.wolf);
@@ -202,14 +287,8 @@ $("#app").addEventListener("click",e=>{
     if(tie){if(!sel.vc)return tt("후보를 골라 주세요.");[g,t]=sel.vc.split(":")}
     else{if(!sel.vt||!sel.vg)return tt("지목할 사람과 양/늑대를 모두 골라 주세요.");g=sel.vg;t=sel.vt}
     tx({t:"vote",guess:g,target:t});sel={};
-  }else if(a==="leave"){localStorage.removeItem("dr");V=null;sel={};ws.close()}
-  else if(a==="ability"){if(!sel.f||!sel.r)return tt("진영과 역할을 모두 골라 주세요.");tx({t:"draw",ab:true,faction:sel.f,role:sel.r});sel={}}
-  else if(a==="kick"){
-    if(!sel.x)return tt("추방할 사람을 골라 주세요.");
-    const t=V.players.find(p=>p.id===sel.x);
-    if(!confirm((t?t.name:"이 사람")+"님을 추방할까요?"))return;
-    tx({t:"kick",id:sel.x});sel.x="";
   }
+  else if(a==="ability"){if(!sel.f||!sel.r)return tt("진영과 역할을 모두 골라 주세요.");tx({t:"draw",ab:true,faction:sel.f,role:sel.r});sel={}}
   else if(a==="start"){const tn=parseInt(cfg.total),ev=parseInt(cfg.every);if(!isNaN(tn)&&tn<10)return tt("진행 턴 수는 최소 10턴이에요.");tx({t:"start",total:isNaN(tn)?10:tn,every:isNaN(ev)?3:ev})}
   else tx({t:a});
 });
