@@ -64,40 +64,45 @@ function render(){
   }
   const ph=V.phase,pl=V.players,me=pl.find(x=>x.id===V.me)||{};
   const cls=p=>p.faction==="동"?"e":p.faction==="서"?"w":"";
-  let h=`<div class="card"><p class="n">방 코드</p><div class="code">${esc(V.code)}</div><h2>${ph==="lobby"?"대기실 · "+pl.length+"명":V.day+"/"+V.total+"일차 · "+{draw:"역할 뽑기",night:"밤",vote:"아침 투표",result:"투표 결과",end:"게임 종료"}[ph]}</h2><ul>${pl.map(p=>`<li class="${cls(p)}${p.on?"":" off"}">${esc(p.name)}${p.faction?` <small>${p.faction}쪽</small>`:""}${p.id===V.me?" (나)":""}</li>`).join("")}</ul></div>`;
+  let h=`<div class="card"><p class="n">방 코드</p><div class="code">${esc(V.code)}</div><h2>${ph==="lobby"?"대기실 · "+pl.length+"명":V.day+"/"+V.total+"일차 · "+{draw:"역할 뽑기",night:"밤",attack:"밤 · 공격",vote:"아침 투표",result:"투표 결과",end:"게임 종료"}[ph]}</h2><ul>${pl.map(p=>`<li class="${cls(p)}${p.on?"":" off"}">${esc(p.name)}${p.faction?` <small>${p.faction}쪽</small>`:""}${p.hw?" <small>하울링</small>":""}${p.bot?" (봇)":""}${p.id===V.me?" (나)":""}</li>`).join("")}</ul></div>`;
   if(V.role)h+=`<div class="card"><p class="n">오늘의 나</p><div class="role ${cls(me)}">${me.faction}쪽 ${V.role}</div></div>`;
-  if(V.board)h+=`<div class="card"><h2>${ph==="end"?"최종 순위":"중간 점수"}</h2>${V.board.map((b,i)=>`<p>${i+1}. ${esc(b.name)} — ${b.score}점</p>`).join("")}</div>`;
+  if(ph!=="lobby")h+=`<div class="card"><p class="n">내 점수</p><div class="role">${V.my.score}점</div></div>`;
+  if(V.board)h+=`<div class="card"><h2>${ph==="end"?"최종 순위":"중간 점수"}</h2>${V.board.map((b,i)=>`<p>${i+1}. ${esc(b.name)} — ${b.score}점${b.win?" · 우승":""}</p>`).join("")}</div>`;
   if(V.pub&&V.pub.length&&ph!=="draw")h+=`<div class="card"><h2>공개 소식</h2>${V.pub.map(x=>`<p>${esc(x)}</p>`).join("")}</div>`;
-  if(V.note&&(ph==="vote"||ph==="result"))h+=`<div class="card"><h2>나에게만 온 소식</h2><p>${esc(V.note)}</p></div>`;
+  if(V.note&&(ph==="attack"||ph==="vote"||ph==="result"))h+=`<div class="card"><h2>나에게만 온 소식</h2><p>${esc(V.note)}</p></div>`;
   const others=pl.filter(x=>x.id!==V.me);
   const opts=(k,t,l)=>`<select data-k="${k}" aria-label="${t}"><option value="">${t}</option>${(l||others).map(p=>`<option value="${p.id}"${sel[k]===p.id?" selected":""}>${esc(p.name)}</option>`).join("")}</select>`;
   if(ph==="lobby"){
-    h+=V.host?`<p class="n">친구들에게 방 코드를 알려 주세요.</p><select id="tot" aria-label="진행 턴 수"><option value="10">10턴 (기본)</option><option value="15">15턴</option><option value="20">20턴</option><option value="3">3턴 (시험용)</option></select><button data-a="start"${pl.length<2?" disabled":""}>게임 시작</button>`:`<p class="n">방장이 시작하기를 기다리는 중이에요.</p>`;
+    h+=V.host?`<p class="n">친구들에게 방 코드를 알려 주세요. 원활한 진행에는 4명 이상을 권장해요.</p><select id="tot" aria-label="진행 턴 수"><option value="10">10턴 (기본)</option><option value="15">15턴</option><option value="20">20턴</option><option value="3">3턴 (시험용)</option></select><button class="g" data-a="addbot"${pl.length>=8?" disabled":""}>봇 추가</button>${pl.some(p=>p.bot)?`<button class="g" data-a="rmbot">봇 한 명 빼기</button>`:""}<button data-a="start"${pl.length<2?" disabled":""}>게임 시작</button>`:`<p class="n">방장이 시작하기를 기다리는 중이에요.</p>`;
   }else if(ph==="end"){
-    h+=`<p class="n">게임이 끝났어요. 위 순위에서 가장 높은 점수가 승리해요.</p>`;
+    h+=`<p class="n">게임이 끝났어요. 가장 높은 점수를 얻은 사람이 우승이에요. 동점이면 공동 우승이에요.</p>`;
   }else if(ph==="result"){
     const r=V.res||{};
     const line=(t,x)=>x?`<p><b>${t} 1위: ${esc(x.name)}</b> — 정체가 ${x.ok?"맞았어요":"아니었어요"}.</p>`:`<p>${t} 투표가 없었어요.</p>`;
-    h+=`<div class="card">${line("양",r.sheep)}${line("늑대",r.wolf)}<p class="n">점수는 3턴마다 공개돼요.</p></div>`;
+    h+=`<div class="card">${line("양",r.sheep)}${line("늑대",r.wolf)}<p class="n">다른 사람의 점수는 3턴마다 공개돼요.</p></div>`;
     h+=V.host?`<button data-a="next">다음 밤으로</button>`:`<p class="n">방장이 다음 밤을 시작하기를 기다리는 중이에요.</p>`;
   }else if(me.done){
-    h+=`<div class="card">제출했어요. 다른 사람을 기다리는 중이에요.</div>`;
+    h+=`<div class="card">${ph==="attack"&&V.role!=="늑대"?"늑대들이 공격할 대상을 정하는 중이에요.":"제출했어요. 다른 사람을 기다리는 중이에요."}</div>`;
   }else if(ph==="draw"){
     const my=V.my||{};
-    h+=`<div class="card"><h2>이대로 하루를 시작할까요?</h2><button data-a="draw">확인</button></div>`;
-    if(my.abil<2&&!my.lock)h+=`<div class="card"><h2>능력 사용 (남은 ${2-my.abil}회)</h2><p class="n">진영과 역할을 직접 고르면, 사용했다는 사실이 모두에게 알려져요.</p><select data-k="f" aria-label="진영"><option value="">진영 선택</option><option value="동"${sel.f==="동"?" selected":""}>동쪽</option><option value="서"${sel.f==="서"?" selected":""}>서쪽</option></select><select data-k="r" aria-label="역할"><option value="">역할 선택</option><option value="양"${sel.r==="양"?" selected":""}>양</option><option value="늑대"${sel.r==="늑대"?" selected":""}>늑대</option></select><button class="g" data-a="ability">능력 사용하기</button></div>`;
-    else if(my.lock)h+=`<p class="n">역할이 고정된 날이라 능력을 쓸 수 없어요.</p>`;
+    if(my.lock)h+=`<div class="card"><h2>역할이 고정된 날이에요</h2><p>오늘 당신의 역할은 <b>${my.lockRole}</b>이에요. 진영은 밤이 되면 알려져요. 능력은 쓸 수 없어요.</p><button data-a="draw">확인</button></div>`;
+    else{
+      h+=`<div class="card"><h2>오늘 능력을 쓸까요?</h2><p class="n">진영과 역할을 직접 정하는 능력이에요. 쓰면 사용했다는 사실이 모두에게 알려지고, 무엇을 골랐는지는 비밀이에요. 쓰지 않으면 진영과 역할이 랜덤으로 정해져요.</p><button data-a="draw">능력 쓰지 않기</button></div>`;
+      if(my.abil<2)h+=`<div class="card"><h2>능력 사용 (남은 ${2-my.abil}회)</h2><select data-k="f" aria-label="진영"><option value="">진영 선택</option><option value="동"${sel.f==="동"?" selected":""}>동쪽</option><option value="서"${sel.f==="서"?" selected":""}>서쪽</option></select><select data-k="r" aria-label="역할"><option value="">역할 선택</option><option value="양"${sel.r==="양"?" selected":""}>양</option><option value="늑대"${sel.r==="늑대"?" selected":""}>늑대</option></select><button class="g" data-a="ability">능력 사용하기</button></div>`;
+    }
   }else if(ph==="night"){
     const my=V.my||{};
     const so=(v,t)=>`<option value="${v}"${sel.k===v?" selected":""}>${t}</option>`;
     h+=V.role==="늑대"
-      ?`<div class="card"><h2>누구를 공격할까요?</h2>${opts("t","공격 포기")}<select data-k="h" aria-label="하울링"><option value="">하울링 안 함</option>${my.howl<3?`<option value="1"${sel.h==="1"?" selected":""}>하울링 하기 (남은 ${3-my.howl}회)</option>`:""}</select><button data-a="act">밤 보내기</button></div>`
+      ?`<div class="card"><h2>하울링을 할까요?</h2><p class="n">하울링한 늑대끼리는 서로를 알 수 있어요. 혼자만 하면 정체가 모두에게 알려지고 -2점이에요.</p><select data-k="h" aria-label="하울링"><option value="">하울링 안 함</option>${my.howl<3?`<option value="1"${sel.h==="1"?" selected":""}>하울링 하기 (남은 ${3-my.howl}회)</option>`:""}</select><button data-a="act">결정하기</button></div>`
       :`<div class="card"><h2>밤에 무엇을 할까요?</h2><select data-k="k" aria-label="스킬">${so("","아무것도 안 함")}${so("shepherd","양치기 부르기")}${so("hunter","사냥꾼 부르기")}${my.dis<1?so("disguise","늑대로 위장 (1회)"):""}</select><button data-a="act">밤 보내기</button></div>`;
+  }else if(ph==="attack"){
+    h+=`<div class="card"><h2>누구를 공격할까요?</h2>${opts("t","공격 포기 (-1점, 굶주림)")}<button data-a="attack">공격하기</button></div>`;
   }else if(ph==="vote"){
-    const lst=k=>others.filter(p=>!p.ex&&(!V.cand[k]||V.cand[k].includes(p.id)));
+    const lst=k=>pl.filter(p=>!p.ex&&(!V.cand[k]||V.cand[k].includes(p.id)));
     h+=`<div class="card"><h2>${V.need.sheep&&V.need.wolf?"어젯밤을 떠올려 보세요":"동표예요. 후보 중에서 다시 투표해요"}</h2>${V.need.sheep?opts("s","양으로 의심되는 사람",lst("sheep")):""}${V.need.wolf?opts("w","늑대로 의심되는 사람",lst("wolf")):""}<button data-a="vote">투표하기</button></div>`;
   }
-  if(V.host&&(ph==="night"||ph==="vote"))h+=`<p class="n">제출 ${pl.filter(p=>p.done).length}/${pl.length}</p><button class="g" data-a="force">지금 넘기기</button>`;
+  if(V.host&&["draw","night","attack","vote"].includes(ph))h+=`<p class="n">제출 ${pl.filter(p=>p.done).length}/${pl.length}</p><button class="g" data-a="force">지금 넘기기</button>`;
   if(V.host&&ph!=="lobby")h+=`<button class="g" data-a="reset">새 게임 (대기실로)</button>`;
   h+=`<button class="g" data-a="leave">방 나가기</button>`;
   $("#app").innerHTML=h;
@@ -114,7 +119,8 @@ $("#app").addEventListener("click",e=>{
       if(!c)return tt("방 코드를 입력해 주세요.");
       tx({t:"join",tok,name:n,code:c});
     }
-  }else if(a==="act"){tx({t:"act",target:sel.t||"",skill:sel.k||"",howl:sel.h==="1"});sel={}}
+  }else if(a==="act"){tx({t:"act",skill:sel.k||"",howl:sel.h==="1"});sel={}}
+  else if(a==="attack"){tx({t:"attack",target:sel.t||""});sel={}}
   else if(a==="vote"){
     if((V.need.sheep&&!sel.s)||(V.need.wolf&&!sel.w))return tt("의심되는 사람을 골라 주세요.");
     tx({t:"vote",sheep:sel.s||"",wolf:sel.w||""});sel={};
