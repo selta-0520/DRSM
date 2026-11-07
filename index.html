@@ -29,6 +29,11 @@ label.n{display:block}
 .top{display:flex;justify-content:flex-end;margin:-.6rem 0 .8rem}
 button.sm{width:auto;padding:.3rem .9rem;font-size:.9rem;margin:0}
 .rl p{margin:.3rem 0}
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.sides ul{flex-direction:column;align-items:flex-start}
+.sides .sw{color:var(--w);font-weight:700;margin:0 0 .3rem}
+.sides .se{color:var(--e);font-weight:700;margin:0 0 .3rem;text-align:right}
+.sides>div:last-child ul{align-items:flex-end}
 #t{position:fixed;left:1rem;right:1rem;bottom:calc(1rem + env(safe-area-inset-bottom,0px));background:var(--ac);color:var(--acf);padding:.8rem 1rem;border-radius:8px;max-width:28rem;margin:0 auto}
 </style></head>
 <body><main><h1>동랑서미전</h1><p class="sub">東狼西羊戰</p><div class="top"><button class="g sm" id="rb">설명서</button></div><div id="app"><p class="n">연결 중…</p></div></main><div id="t" hidden role="status"></div>
@@ -63,7 +68,7 @@ setInterval(()=>{if(ws&&ws.readyState===1)ws.send('{"t":"ping"}')},25000);
 const RULES=`<div class="rl">
 <div class="card"><h2>게임 목표</h2><p>정해진 턴이 끝났을 때 가장 많은 점수를 얻은 사람이 우승해요. 동점이면 공동 우승이에요.</p></div>
 <div class="card"><h2>진영과 역할</h2><p>모두 동쪽이나 서쪽 진영 중 하나이고, 양이나 늑대 역할 중 하나예요. 진영과 역할은 매일 새로 랜덤으로 정해져요. 양이 될지 늑대가 될지 확률은 알 수 없고, 모두 양이거나 모두 늑대인 날도 있어요.</p><p>다른 사람의 역할과 점수는 알 수 없지만, 진영은 볼 수 있어요.</p></div>
-<div class="card"><h2>하루의 흐름</h2><p><b>1. 역할 뽑기</b> — 진영과 역할이 정해지기 전에 능력을 쓸지 정해요.</p><p><b>2. 밤 · 하울링</b> — 늑대만 하울링을 쓸지 정해요.</p><p><b>3. 밤 · 행동</b> — 양은 스킬을 고르고, 늑대는 공격할 사람을 골라요. 모두 동시에 정해요.</p><p><b>4. 아침 투표</b> — 양으로 의심되는 사람과 늑대로 의심되는 사람을 뽑아요.</p><p><b>5. 결과</b> — 투표 결과와 내 점수가 나오고, 방장이 다음 밤을 시작해요.</p></div>
+<div class="card"><h2>하루의 흐름</h2><p><b>1. 역할 뽑기</b> — 진영과 역할이 정해지기 전에 능력을 쓸지 정해요.</p><p><b>2. 밤 · 하울링</b> — 늑대만 하울링을 쓸지 정해요.</p><p><b>3. 밤 · 행동</b> — 양은 스킬을 고르고, 늑대는 공격할 사람을 골라요. 모두 동시에 정해요.</p><p><b>4. 아침</b> — 밤이 끝나면 모두 확인을 눌러요. 모두 누르면 투표로 넘어가요.</p><p><b>5. 아침 투표</b> — 양으로 의심되는 사람과 늑대로 의심되는 사람을 뽑아요.</p><p><b>6. 결과</b> — 투표 결과와 내 점수를 확인해요. 모두 확인을 누르면 다음 날이 시작돼요.</p></div>
 <div class="card"><h2>능력 (진영 및 역할 선택)</h2><p>게임 전체에서 최대 2번, 진영과 역할을 직접 고를 수 있어요. 쓰면 "능력을 사용했습니다"라는 사실이 모두에게 알려지지만, 무엇을 골랐는지는 비밀이에요. 역할이 고정된 날에는 쓸 수 없어요.</p></div>
 <div class="card"><h2>양</h2><p>밤에 아무 행동도 하지 않고 늑대에게 공격받지 않으면 <b>+3점</b>이에요. 공격받으면 이 점수를 받지 못해요.</p><p><b>양치기 부르기</b> — 공격받았다면 +2점을 받고, 몇 명이 나를 공격했는지 알 수 있어요. 공격한 늑대는 다음 턴에 늑대로 고정돼요(진영은 랜덤). 공격받지 않았다면 -2점이에요.</p><p><b>사냥꾼 부르기</b> — 공격받았다면 +1점이고, 공격한 늑대는 다음 턴 점수를 계산한 뒤 -2점을 받아요. 공격받지 않았다면 -4점이에요.</p><p><b>위장</b> — 한 게임에 1번, 그날 밤에만 나를 늑대로 판정하게 해요. 늑대의 행동과 스킬은 쓸 수 없고, 양의 스킬과 생존 +3점도 받지 못해요. 아침 투표에서는 그대로 양으로 취급돼요.</p></div>
 <div class="card"><h2>늑대</h2><p>밤마다 자기 자신을 뺀 다른 사람 한 명을 공격할 수 있어요.</p><p><b>양을 공격하면</b> — 같은 진영 양 +1점, 다른 진영 양 +3점이에요.</p><p><b>늑대를 공격하면</b> — 같은 진영 늑대 0점, 다른 진영 늑대 -3점이에요. 위장한 양은 늑대로 취급돼요.</p><p><b>공격을 포기하면</b> — -1점을 받고 굶주림 상태가 돼요.</p><p>여러 늑대가 같은 양을 공격하면 늑대마다 따로 점수를 받아요.</p></div>
@@ -83,11 +88,16 @@ function render(){
   }
   const ph=V.phase,pl=V.players,me=pl.find(x=>x.id===V.me)||{};
   const cls=p=>p.faction==="동"?"e":p.faction==="서"?"w":"";
-  let h=`<div class="card"><p class="n">방 코드</p><div class="code">${esc(V.code)}</div><h2>${ph==="lobby"?"대기실 · "+pl.length+"명":V.day+"/"+V.total+"일차 · "+{draw:"역할 뽑기",howl:"밤 · 하울링",night:"밤 · 행동",vote:"아침 투표",result:"투표 결과",end:"게임 종료"}[ph]}</h2><ul>${pl.map(p=>`<li class="${cls(p)}${p.on?"":" off"}">${esc(p.name)}${p.faction?` <small>${p.faction}쪽</small>`:""}${p.hw?" <small>하울링</small>":""}${p.bot?" (봇)":""}${p.id===V.me?" (나)":""}</li>`).join("")}</ul></div>`;
+  const chip=p=>`<li class="${cls(p)}${p.on?"":" off"}">${esc(p.name)}${p.hw?" <small>하울링</small>":""}${p.bot?" (봇)":""}${p.id===V.me?" (나)":""}</li>`;
+  const split=ph!=="lobby"&&ph!=="draw"&&pl.some(p=>p.faction);
+  const listHtml=split
+    ?`<div class="sides"><div><p class="sw">서쪽</p><ul>${pl.filter(p=>p.faction==="서").map(chip).join("")}</ul></div><div><p class="se">동쪽</p><ul>${pl.filter(p=>p.faction==="동").map(chip).join("")}</ul></div></div>`
+    :`<ul>${pl.map(chip).join("")}</ul>`;
+  let h=`<div class="card"><p class="n">방 코드</p><div class="code">${esc(V.code)}</div><h2>${ph==="lobby"?"대기실 · "+pl.length+"명":V.day+"/"+V.total+"일차 · "+{draw:"역할 뽑기",howl:"밤 · 하울링",night:"밤 · 행동",dawn:"아침",vote:"아침 투표",result:"투표 결과",end:"게임 종료"}[ph]}</h2>${listHtml}</div>`;
   if(V.role)h+=`<div class="card"><p class="n">오늘의 나</p><div class="role ${cls(me)}">${me.faction}쪽 ${V.role}</div></div>`;
   if(V.board)h+=`<div class="card"><h2>${ph==="end"?"최종 순위":"중간 점수"}</h2>${V.board.map((b,i)=>`<p>${i+1}. ${esc(b.name)} — ${b.score}점${b.win?" · 우승":""}</p>`).join("")}</div>`;
   if(V.pub&&V.pub.length&&ph!=="draw")h+=`<div class="card"><h2>공개 소식</h2>${V.pub.map(x=>`<p>${esc(x)}</p>`).join("")}</div>`;
-  if(V.note&&(ph==="night"||ph==="vote"))h+=`<div class="card"><h2>나에게만 온 소식</h2><p>${esc(V.note)}</p></div>`;
+  if(V.note&&(ph==="night"||ph==="dawn"||ph==="vote"))h+=`<div class="card"><h2>나에게만 온 소식</h2><p>${esc(V.note)}</p></div>`;
   const signed=n=>(n>0?"+":"")+n;
   const logCard=()=>{
     if(!V.log)return"";
@@ -107,7 +117,9 @@ function render(){
     const tl=k=>(tal[k]||[]).map((c,i,arr)=>`<p class="n">${arr.length>1?(i?"재투표":"1차 투표"):"득표"}: ${c.length?c.map(x=>esc(x.name)+" "+x.n+"표").join(" · "):"없음"}</p>`).join("");
     const kind=(t,k,x,role)=>`<div class="card"><h2>${t} 투표 결과</h2>${tl(k)}${x?`<p><b>1위: ${esc(x.name)}</b> — 정체가 ${x.ok?"맞았어요":"아니었어요"}.</p><p>${x.ok?`다음 턴에 ${role==="양"?"양으로":"늑대로"} 고정됩니다. (진영은 랜덤)`:"투표로 뽑힌 사람을 제외한 모두의 점수를 -2점 깎습니다."}</p>`:`<p>뽑힌 사람이 없어요. (기권 처리)</p>`}</div>`;
     h+=kind("양","sheep",r.sheep,"양")+kind("늑대","wolf",r.wolf,"늑대")+logCard()+`<p class="n">${V.every>0?`다른 사람의 점수는 ${V.every}턴마다 공개돼요.`:"중간 점수는 공개되지 않아요. 마지막에 최종 순위가 나와요."}</p>`;
-    h+=V.host?`<button data-a="next">다음 밤으로</button>`:`<p class="n">방장이 다음 밤을 시작하기를 기다리는 중이에요.</p>`;
+    h+=me.done?`<p class="n">확인했어요. 다른 사람을 기다리는 중이에요.</p>`:`<button data-a="ok">${V.day>=V.total?"확인 (최종 순위 보기)":"확인 (다음 밤으로)"}</button>`;
+  }else if(ph==="dawn"){
+    h+=`<div class="card"><h2>아침이 밝았어요</h2><p>밤이 지났어요. 모두 확인을 누르면 아침 투표로 넘어가요.</p></div>`+(me.done?`<p class="n">확인했어요. 다른 사람을 기다리는 중이에요.</p>`:`<button data-a="ok">확인</button>`);
   }else if(me.done){
     h+=`<div class="card">${ph==="howl"&&V.role!=="늑대"?"늑대들이 하울링을 정하는 중이에요.":"제출했어요. 다른 사람을 기다리는 중이에요."}</div>`;
   }else if(ph==="draw"){
@@ -130,7 +142,7 @@ function render(){
     const lst=k=>pl.filter(p=>!p.ex&&(!V.cand[k]||V.cand[k].includes(p.id)));
     h+=`<div class="card"><h2>${V.need.sheep&&V.need.wolf?"어젯밤을 떠올려 보세요":"동표예요. 후보 중에서 다시 투표해요"}</h2>${V.need.sheep?opts("s","양으로 의심되는 사람",lst("sheep")):""}${V.need.wolf?opts("w","늑대로 의심되는 사람",lst("wolf")):""}<button data-a="vote">투표하기</button></div>`;
   }
-  if(V.host&&["draw","howl","night","vote"].includes(ph))h+=`<p class="n">제출 ${pl.filter(p=>p.done).length}/${pl.length}</p><button class="g" data-a="force">지금 넘기기</button>`;
+  if(V.host&&["draw","howl","night","dawn","vote","result"].includes(ph))h+=`<p class="n">${["dawn","result"].includes(ph)?"확인":"제출"} ${pl.filter(p=>p.done).length}/${pl.length}</p><button class="g" data-a="force">지금 넘기기</button>`;
   if(V.host&&others.length)h+=`<div class="card"><h2>플레이어 추방</h2>${opts("x","추방할 사람 선택")}<button class="g" data-a="kick">추방하기</button></div>`;
   if(V.host&&ph!=="lobby")h+=`<button class="g" data-a="reset">새 게임 (대기실로)</button>`;
   h+=`<button class="g" data-a="leave">방 나가기</button>`;

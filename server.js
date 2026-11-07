@@ -17,7 +17,7 @@ const wss = new WebSocketServer({ server });
 
 const by = (r, id) => r.players.find(x => x.id === id);
 const jr = x => x.dg ? "늑대" : x.role;            // 밤 동안의 판정 (위장 반영)
-const LIVE = ["draw", "howl", "night", "vote"];
+const LIVE = ["draw", "howl", "night", "dawn", "vote", "result"];
 const pend = r => r.phase === "howl" ? r.players.filter(x => x.role === "늑대") : r.players;
 const add = (x, d, w, k) => { x.score += d; (x.log = x.log || []).push({ k, d, w }); };
 const info = (x, w, k) => add(x, 0, w, k);
@@ -46,7 +46,7 @@ function view(r, p) {
     res: r.phase === "result" ? r.res : null, board,
     log: (r.phase === "result" || r.phase === "end") ? (p.log || []) : null,
     pub: r.pub || [],
-    note: ["night", "vote", "result"].includes(r.phase) ? (p.note || "") : "",
+    note: ["night", "dawn", "vote", "result"].includes(r.phase) ? (p.note || "") : "",
     my: { abil: p.abil || 0, howl: p.howl || 0, dis: p.dis || 0, lock: !!p.lock, lockRole: (r.phase === "draw" && p.lock) ? p.role : null, score: (r.phase === "result" || r.phase === "end") ? (p.score || 0) : null }
   };
 }
@@ -100,7 +100,7 @@ function toVote(r) {
   const ok = r.players.some(x => !x.ex);   // 후보가 없으면 자동 기권
   r.need = { sheep: ok, wolf: ok }; r.cand = { sheep: null, wolf: null }; r.tal = { sheep: [], wolf: [] };
 }
-function afterNight(r) { resolveNight(r); toVote(r); if (!r.need.sheep && !r.need.wolf) advance(r); }
+function afterNight(r) { resolveNight(r); r.phase = "dawn"; r.acts = {}; }
 function advance(r) {
   if (r.phase === "draw") {
     r.players.forEach(x => {
@@ -114,6 +114,9 @@ function advance(r) {
     if (hs.length === 1) { add(hs[0], -2, "하울링을 혼자 써서 늑대라는 사실이 모두에게 밝혀졌어요.", "n"); r.pub.push(hs[0].name + "님이 늑대라는 사실이 밝혀졌습니다."); }
     else hs.forEach(w => { w.note = "하울링한 늑대: " + hs.map(y => y.name).join(", "); info(w, w.note, "n"); });
     r.acts = {}; r.phase = "night";
+  } else if (r.phase === "dawn") {
+    toVote(r);
+    if (!r.need.sheep && !r.need.wolf) advance(r);
   } else if (r.phase === "night") {
     r.sk = {};
     r.players.forEach(x => { const a = r.acts[x.id] || {}; if (x.role === "양" && a.skill) r.sk[x.id] = a.skill; });
@@ -171,6 +174,7 @@ function afterKick(r) {
 function botAct(r, x) {
   const others = r.players.filter(y => y.id !== x.id).map(y => y.id);
   if (r.phase === "draw") r.acts[x.id] = { ab: false };
+  else if (r.phase === "dawn" || r.phase === "result") r.acts[x.id] = { ok: true };
   else if (r.phase === "howl") r.acts[x.id] = { howl: x.howl < 3 && Math.random() < .3 };
   else if (r.phase === "night") r.acts[x.id] = x.role === "늑대"
     ? { target: Math.random() < .15 ? "" : (rnd(others) || "") }
@@ -239,6 +243,8 @@ wss.on("connection", ws => {
       send(w, { t: "kicked" }); try { w && w.close(); } catch { }
       r.players = r.players.filter(x => x !== t); delete r.acts[t.id];
       afterKick(r);
+    } else if (m.t === "ok" && (r.phase === "dawn" || r.phase === "result")) {
+      r.acts[p.id] = { ok: true };
     } else if (m.t === "draw" && r.phase === "draw") {
       const ok = m.ab && p.abil < 2 && !p.lock && ["동", "서"].includes(m.faction) && ["양", "늑대"].includes(m.role);
       r.acts[p.id] = ok ? { ab: true, faction: m.faction, role: m.role } : { ab: false };
