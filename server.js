@@ -47,6 +47,7 @@ function view(r, p) {
     res: r.phase === "result" ? r.res : null, board,
     log: p.slog || null, logDay: p.slogDay || 0,
     pub: r.pub || [],
+    chat: (r.chat || []).slice(-60),
     note: ["night", "dawn", "vote", "result"].includes(r.phase) ? (p.note || "") : "",
     my: { abil: p.abil || 0, howl: p.howl || 0, dis: p.dis || 0, lock: !!p.lock, lockRole: (r.phase === "draw" && p.lock) ? p.role : null, shown: p.shown == null ? null : p.shown }
   };
@@ -207,7 +208,7 @@ wss.on("connection", ws => {
       const name = String(m.name || "").trim().slice(0, 12), tok = String(m.tok || "").slice(0, 40);
       if (!name || !tok) return err("이름을 입력해 주세요.");
       if (m.t === "create") {
-        r = { code: newCode(), hostTok: tok, phase: "lobby", day: 0, players: [], acts: {}, res: null, pub: [], sk: {}, banned: new Set(), total: 10, every: 3, at: Date.now() };
+        r = { code: newCode(), hostTok: tok, phase: "lobby", day: 0, players: [], acts: {}, res: null, pub: [], sk: {}, banned: new Set(), total: 10, every: 3, chat: [], at: Date.now() };
         rooms.set(r.code, r);
       } else {
         r = rooms.get(String(m.code || "").trim().toUpperCase());
@@ -225,6 +226,15 @@ wss.on("connection", ws => {
       return push(r);
     }
     if (!r || !p) return;
+    if (m.t === "chat") {
+      const text = String(m.text || "").replace(/\s+/g, " ").trim().slice(0, 200);
+      const now = Date.now();
+      if (!text) return;
+      if (p.lastChat && now - p.lastChat < 600) return err("너무 빨리 보내고 있어요.");
+      p.lastChat = now;
+      r.chat = (r.chat || []).concat({ id: p.id, name: p.name, text, at: now }).slice(-60);
+      return push(r);
+    }
     const host = r.hostTok === p.tok;
     const valid = id => id !== p.id && r.players.some(x => x.id === id);
     if (m.t === "start" && host && r.phase === "lobby") {
